@@ -1,0 +1,83 @@
+/* ============ Общие ============ */
+* { box-sizing: border-box; margin:0; padding:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+:root{
+  --bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
+  --accent:#8a5cff; --primary:#5d1fff; --white:#fff;
+}
+html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2)); color:var(--white);}
+
+/* layout */
+.content-wrap{ padding-top:80px; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; }
+
+/* top bar */
+.top-bar{
+  position:fixed; top:0; left:0; right:0; height:70px; padding:10px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  backdrop-filter: blur(15px); background:var(--glass); border-bottom:1px solid var(--glass-2);
+  border-radius:0 0 20px 20px; z-index:50; transition: transform .35s ease;
+}
+.left-group{ display:flex; gap:12px; align-items:center; }
+.back-btn{ padding:8px 12px; border-radius:12px; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:18px; opacity:.9; }
+.profile-btn img{ width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.8); }
+
+/* add button center plus */
+.add-btn{ width:42px; height:42px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:rgba(255,255,255,0.15); color:#fff; backdrop-filter:blur(10px); }
+
+/* grid content */
+.content{ width:100%; max-width:980px; padding:16px; display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px; }
+.empty-text{ grid-column:1/-1; text-align:center; color: rgba(255,255,255,0.7); font-size:18px; margin-top:40px; }
+
+/* workout card */
+.workout-card{ background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); padding:16px; border-radius:18px; transition: transform .18s ease, box-shadow .18s ease; cursor:pointer; display:flex; flex-direction:column; gap:8px; }
+.workout-card:hover{ transform: translateY(-6px) scale(1.01); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+.workout-title{ font-weight:700; font-size:18px; } .workout-info{ color: rgba(255,255,255,0.8); font-size:14px; }
+
+/* overlay */
+.overlay{ position:fixed; inset:0; background: rgba(0,0,0,0.45); backdrop-filter: blur(5px); opacity:0; pointer-events:none; transition: opacity .25s ease; z-index:80; }
+
+/* bottom modal */
+.bottom-modal{
+  position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
+  backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:90; transition: bottom .38s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
+}
+.bottom-modal .modal-inner{ display:flex; flex-direction:column; gap:12px; max-height:88vh; overflow:auto; padding-bottom:8px; }
+
+/* steps */
+.step{ display:none; } .step.active{ display:block; }
+.step h2{ font-size:20px; margin-bottom:8px; color:#fff; }
+input[type="text"], input[type="number"]{ width:100%; padding:12px 14px; border-radius:12px; border:none; background: rgba(255,255,255,0.08); color:#fff; margin-bottom:8px; }
+
+/* buttons */
+.btn{ padding:10px 14px; border-radius:12px; border:none; cursor:pointer; font-weight:600; } .btn.primary{ background:var(--primary); color:#fff; } .btn.ghost{ background:rgba(255,255,255,0.06); color:#fff; } .btn.add-ex{ background:transparent; border:1px dashed rgba(255,255,255,0.12); color:#fff; padding:10px 12px; border-radius:12px; }
+
+/* layout helpers */
+.row{ display:flex; gap:10px; } .row.end{ justify-content:flex-end; } .row .btn{ flex:1; }
+
+/* exercise form */
+.exercise-form{ display:none; margin-top:8px; padding:10px 0; border-radius:12px; } .exercise-form.active{ display:block; } .time-row{ display:flex; gap:8px; } .time-row input{ width:50%; }
+
+/* exercise list */
+.exercise-list{ display:flex; flex-direction:column; gap:10px; margin-top:8px; padding-bottom:12px; }
+
+/* exercise card */
+.exercise-card{ background: rgba(255,255,255,0.06); padding:12px; border-radius:14px; cursor:grab; display:flex; flex-direction:column; gap:6px; transition: transform .12s ease, box-shadow .12s ease; }
+.exercise-card.dragging{ opacity:0.6; transform:scale(1.02); cursor:grabbing; box-shadow:0 8px 24px rgba(0,0,0,0.45); }
+.ex-card-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; } .ex-title{ font-weight:700; } .ex-meta{ color: rgba(255,255,255,0.75); font-size:13px; } .ex-actions{ display:flex; gap:8px; } .icon-small{ background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; border:none; cursor:pointer; }
+
+/* disabled */
+.btn.primary.disabled, .btn.primary[disabled]{ opacity:.45; pointer-events:none; }
+
+/* view modal */
+.view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:120; pointer-events:none; }
+.view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:18px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.view-modal.show{ pointer-events:auto; } .view-modal.show .view-inner{ transform:translateY(0); opacity:1; }
+.view-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; } .view-actions{ display:flex; gap:8px; } .icon-btn{ background:rgba(255,255,255,0.04); color:#fff; padding:8px 10px; border-radius:10px; border:none; cursor:pointer; }
+
+/* view body */
+.view-body{ display:flex; flex-direction:column; gap:10px; } .view-ex{ background: rgba(255,255,255,0.04); padding:10px; border-radius:10px; }
+
+/* responsive */
+@media (max-width:520px){
+  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
+  .top-bar{ padding:8px 12px; }
+}

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FitPlan — Тренировка</title>
+  <style>
+    :root{ --bg:#0f0f1a; --card:#141426; --accent:#5d1fff; color:#fff; }
+    body{ margin:0; min-height:100vh; background:linear-gradient(180deg,#0b0720,#12042a); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; color:var(--white); display:flex; align-items:center; justify-content:center; padding:20px; }
+    .wrap{ width:100%; max-width:720px; background:var(--card); border-radius:14px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+    h1{ margin:0 0 12px 0; font-size:20px; }
+    .meta{ color:rgba(255,255,255,0.8); margin-bottom:10px; }
+    .ex-card{ background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+    .timer{ font-size:32px; font-weight:700; margin:14px 0; text-align:center; }
+    .controls{ display:flex; gap:8px; margin-top:10px; }
+    button{ background:var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:700; }
+    .muted{ background:rgba(255,255,255,0.06); }
+    .small{ padding:8px 10px; font-size:14px; }
+    .hidden{ display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <h1 id="title">Тренировка</h1>
+    <div class="meta" id="meta">0 упражнений</div>
+
+    <div id="currentExerciseArea">
+      <div class="ex-card" id="exCard">
+        <div>
+          <div id="exName" style="font-weight:700">—</div>
+          <div id="exDesc" style="color:rgba(255,255,255,0.8); font-size:13px;"></div>
+        </div>
+        <div style="text-align:right">
+          <div id="exReps" style="font-weight:700"></div>
+          <div style="color:rgba(255,255,255,0.7); font-size:13px;">повторений</div>
+        </div>
+      </div>
+
+      <div class="timer" id="timer">00:00</div>
+
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button id="prevBtn" class="small muted">Назад</button>
+        <button id="startPauseBtn" class="small">Старт</button>
+        <button id="nextBtn" class="small muted">Следующее</button>
+      </div>
+
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+        <button id="finishBtn" class="small muted">Завершить</button>
+        <a id="backLink" href="index.html"><button class="small muted">Назад к списку</button></a>
+      </div>
+    </div>
+
+    <div id="empty" class="hidden">Тренировка не найдена.</div>
+  </div>
+
+<script>
+  // Получаем id тренировки из query
+  function qs(param) {
+    const p = new URLSearchParams(location.search);
+    return p.get(param);
+  }
+  const id = qs('workout');
+  const storageKey = 'fitplan_workouts';
+  let workouts = [];
+  try { workouts = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e){ workouts = []; }
+  const workout = workouts.find(w => w.id === id);
+
+  const titleEl = document.getElementById('title');
+  const metaEl = document.getElementById('meta');
+  const exName = document.getElementById('exName');
+  const exDesc = document.getElementById('exDesc');
+  const exReps = document.getElementById('exReps');
+  const timerEl = document.getElementById('timer');
+  const startPauseBtn = document.getElementById('startPauseBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const finishBtn = document.getElementById('finishBtn');
+  const currentArea = document.getElementById('currentExerciseArea');
+  const empty = document.getElementById('empty');
+
+  if (!workout) {
+    currentArea.classList.add('hidden');
+    empty.classList.remove('hidden');
+  } else {
+    titleEl.textContent = workout.title;
+    metaEl.textContent = `${workout.exercises.length} упражнений`;
+
+    let idx = 0;
+    let running = false;
+    let totalSeconds = (workout.exercises[0].min||0)*60 + (workout.exercises[0].sec||0);
+    let intervalId = null;
+
+    function renderIndex() {
+      const ex = workout.exercises[idx];
+      exName.textContent = `${idx+1}. ${ex.name}`;
+      exDesc.textContent = ex.desc || '';
+      exReps.textContent = `${ex.reps}`;
+      totalSeconds = (ex.min||0)*60 + (ex.sec||0);
+      updateTimerDisplay();
+      // buttons
+      prevBtn.disabled = idx===0; nextBtn.disabled = idx>=workout.exercises.length-1;
+      prevBtn.classList.toggle('muted', idx===0);
+      nextBtn.classList.toggle('muted', idx>=workout.exercises.length-1);
+    }
+
+    function updateTimerDisplay() {
+      const mm = String(Math.floor(totalSeconds/60)).padStart(2,'0');
+      const ss = String(totalSeconds%60).padStart(2,'0');
+      timerEl.textContent = `${mm}:${ss}`;
+    }
+
+    function tick() {
+      if (totalSeconds>0) {
+        totalSeconds--;
+        updateTimerDisplay();
+      } else {
+        // beep (simple)
+        navigator.vibrate?.(200);
+        // auto move to next if exists
+        if (idx < workout.exercises.length-1) {
+          idx++;
+          renderIndex();
+        } else {
+          clearInterval(intervalId);
+          running=false;
+          startPauseBtn.textContent='Старт';
+          alert('Тренировка завершена!');
+        }
+      }
+    }
+
+    startPauseBtn.addEventListener('click', () => {
+      if (!running) {
+        running = true;
+        startPauseBtn.textContent = 'Пауза';
+        intervalId = setInterval(tick, 1000);
+      } else {
+        running = false;
+        startPauseBtn.textContent = 'Старт';
+        clearInterval(intervalId);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (idx < workout.exercises.length-1) {
+        idx++;
+        renderIndex();
+      }
+    });
+    prevBtn.addEventListener('click', () => {
+      if (idx > 0) {
+        idx--;
+        renderIndex();
+      }
+    });
+
+    finishBtn.addEventListener('click', () => {
+      if (confirm('Завершить тренировку?')) {
+        clearInterval(intervalId);
+        running=false;
+        startPauseBtn.textContent='Старт';
+        alert('Тренировка завершена!');
+        location.href = 'index.html';
+      }
+    });
+
+    renderIndex();
+  }
+</script>
+</body>
+</html>

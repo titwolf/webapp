@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FitPlan — Тренировки</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+  <div class="top-bar" id="topBar">
+    <div class="left-group">
+      <button class="back-btn" id="backBtn">←</button>
+      <div class="profile-btn" id="profileBtn">
+        <img src="https://via.placeholder.com/80" alt="avatar">
+      </div>
+    </div>
+
+    <button class="add-btn" id="openCreateModal">+</button>
+  </div>
+
+  <!-- ОСНОВНОЙ КОНТЕНТ -->
+  <main class="content-wrap">
+    <div class="content" id="workoutContainer">
+      <p class="empty-text">Список тренировок пуст.</p>
+    </div>
+  </main>
+
+  <!-- ОВЕРЛЕЙ ДЛЯ БЛЮРА -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- НИЖНЯЯ ПАНЕЛЬ: СОЗДАНИЕ / РЕДАКТИРОВАНИЕ ТРЕНИРОВКИ -->
+  <section class="bottom-modal" id="createModal" aria-hidden="true">
+    <div class="modal-inner">
+
+      <!-- Шаг 1 — ввод названия -->
+      <div class="step step-title active" id="stepTitle">
+        <h2>Название тренировки</h2>
+        <input id="inputTrainingName" type="text" placeholder="Введите название тренировки" />
+        <div class="row">
+          <button class="btn primary" id="toExercisesBtn">Далее</button>
+          <button class="btn ghost" id="closeCreateModal">Отмена</button>
+        </div>
+      </div>
+
+      <!-- Шаг 2 — добавление упражнений -->
+      <div class="step step-exercises" id="stepExercises" aria-hidden="true">
+        <div class="header-row">
+          <h2 id="trainingTitleDisplay">Название</h2>
+          <button class="btn ghost" id="backToTitleBtn">← Назад</button>
+        </div>
+
+        <div class="controls-row">
+          <button class="btn add-ex" id="toggleExerciseFormBtn">+ Добавить упражнение</button>
+        </div>
+
+        <!-- Форма добавления упражнения -->
+        <div class="exercise-form" id="exerciseForm" aria-hidden="true">
+          <input id="exName" type="text" placeholder="Название упражнения *" />
+          <input id="exDesc" type="text" placeholder="Описание (необязательно)" />
+          <input id="exReps" type="number" placeholder="Повторения *" min="1" />
+          <div class="time-row">
+            <input id="exMin" type="number" placeholder="Мин" min="0" />
+            <input id="exSec" type="number" placeholder="Сек" min="0" max="59" />
+          </div>
+          <div class="row">
+            <button class="btn primary" id="saveExerciseBtn">Сохранить упражнение</button>
+            <button class="btn ghost" id="cancelExerciseBtn">Отмена</button>
+          </div>
+        </div>
+
+        <!-- Список упражнений (карточки, draggable) -->
+        <div class="exercise-list" id="exerciseList"></div>
+
+        <div class="row end">
+          <button class="btn primary disabled" id="saveTrainingBtn" disabled>Сохранить тренировку</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- МОДАЛКА ПРОСМОТРА ТРЕНИРОВКИ -->
+  <div class="view-modal" id="viewModal" aria-hidden="true">
+    <div class="view-inner">
+      <div class="view-header">
+        <h3 id="viewTitle">Тренировка</h3>
+        <div class="view-actions">
+          <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
+          <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
+          <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
+          <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+        </div>
+      </div>
+
+      <div class="view-body" id="viewBody">
+        <!-- сюда будет подгружаться список упражнений -->
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
