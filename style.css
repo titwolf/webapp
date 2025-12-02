@@ -7,21 +7,21 @@
 html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2)); color:var(--white);}
 
 /* layout */
-.content-wrap{ padding-top:80px; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; }
+.content-wrap{ padding-top:20vh; min-height:100vh; display:flex; justify-content:center; align-items:flex-start; }
 
 /* top bar */
 .top-bar{
-  position:fixed; top:0; left:0; right:0; height:90px; padding:20px 16px 10px 16px;
-  display:flex; align-items:center; justify-content:space-between;
+  position:fixed; top:0; left:0; right:0; height:20vh; padding:calc(20px + 2vh) 16px 10px 16px;
+  display:flex; flex-direction:column; justify-content:flex-end; align-items:center;
   backdrop-filter: blur(15px); background:var(--glass); border-bottom:1px solid var(--glass-2);
   border-radius:0 0 20px 20px; z-index:50; transition: transform .35s ease;
 }
-.left-group{ display:flex; gap:12px; align-items:flex-end; }
+.left-group{ display:flex; gap:12px; align-items:flex-end; width:100%; justify-content:space-between; padding-bottom:10px; }
 .back-btn{ padding:8px 12px; border-radius:12px; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:18px; opacity:.9; }
 .profile-btn img{ width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.8); }
 
 /* add button center plus */
-.add-btn{ width:42px; height:42px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:rgba(255,255,255,0.15); color:#fff; backdrop-filter:blur(10px); margin-top: 10px; }
+.add-btn{ width:42px; height:42px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:rgba(255,255,255,0.15); color:#fff; backdrop-filter:blur(10px); margin-top:5px; }
 
 /* grid content */
 .content{ width:100%; max-width:980px; padding:16px; display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:14px; }
@@ -79,5 +79,5 @@ input[type="text"], input[type="number"]{ width:100%; padding:12px 14px; border-
 /* responsive */
 @media (max-width:520px){
   .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
-  .top-bar{ padding:8px 12px; }
+  .top-bar{ padding:calc(12px + 2vh) 12px 10px 12px; height:20vh; }
 }
