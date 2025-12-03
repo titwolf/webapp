@@ -115,7 +115,6 @@ async function loadWorkouts() {
 }
 
 async function saveWorkoutToServer(payload) {
-    // После сохранения сервер возвращает объект тренировки с id и exercises
     const savedWorkout = await api('/api/save_workout', 'POST', payload);
     return savedWorkout;
 }
@@ -164,49 +163,6 @@ function closeCreate() {
     createModal.setAttribute('aria-hidden', 'true');
 }
 
-function openView(id) {
-    const w = workouts.find(x => x.id === id);
-    if (!w) return;
-    activeViewId = id;
-
-    overlay.style.opacity = '1';
-    overlay.style.pointerEvents = 'auto';
-    viewModal.classList.add('show');
-
-    viewTitle.textContent = w.name;
-    viewBody.innerHTML = '';
-
-    w.exercises.forEach((ex, idx) => {
-        const div = document.createElement('div');
-        div.className = 'view-ex';
-        div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
-            <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
-        </div>${ex.desc ? `<div style="margin-top:6px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}`;
-        viewBody.appendChild(div);
-    });
-}
-
-function closeView() {
-    viewModal.classList.remove('show');
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-    activeViewId = null;
-}
-
-/* ====== Event listeners for modals ====== */
-openCreateModal.addEventListener('click', () => openCreate());
-closeCreateModal.addEventListener('click', closeCreate);
-overlay.addEventListener('click', () => {
-    if (viewModal.classList.contains('show')) closeView();
-    else if (profileModal.classList.contains('show')) closeProfileBtn.click();
-    else closeCreate();
-});
-backToTitleBtn.addEventListener('click', () => {
-    stepTitle.classList.add('active');
-    stepExercises.classList.remove('active');
-});
-
 /* ====== Exercises ====== */
 toggleExerciseFormBtn.addEventListener('click', () => {
     exerciseForm.classList.toggle('active');
@@ -241,7 +197,7 @@ saveExerciseBtn.addEventListener('click', () => {
     updateSaveTrainingBtn();
 });
 
-/* Переключение на шаг упражнений */
+/* ====== Switching steps ====== */
 toExercisesBtn.addEventListener('click', () => {
     const name = inputTrainingName.value.trim();
     if (!name) { alert('Введите название тренировки'); return; }
@@ -251,7 +207,7 @@ toExercisesBtn.addEventListener('click', () => {
     stepExercises.classList.add('active');
 });
 
-/* Сохранение тренировки */
+/* ====== Save workout ====== */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
     const payload = { user_id: tgUser.id, name: currentTempTitle, exercises: tempExercises };
@@ -324,6 +280,95 @@ closeProfileBtn.addEventListener('click', () => {
 saveProfileBtn.addEventListener('click', async () => {
     await saveProfileToServer({ user_id: tgUser.id, notify_time: notifyTime.value });
     alert('Настройки сохранены');
+});
+
+/* ====== View Modal with inline edit/delete ====== */
+function renderViewExercises() {
+    const w = workouts.find(x => x.id === activeViewId);
+    if (!w) return;
+    viewBody.innerHTML = '';
+
+    w.exercises.forEach((ex, idx) => {
+        const div = document.createElement('div');
+        div.className = 'view-ex';
+        div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
+                ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
+                <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="icon-small" onclick="editViewExercise(${idx})">✎</button>
+                <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
+            </div>
+        </div>`;
+        viewBody.appendChild(div);
+    });
+}
+
+function editViewExercise(idx) {
+    const w = workouts.find(x => x.id === activeViewId);
+    if (!w) return;
+    const ex = w.exercises[idx];
+
+    openCreate(activeViewId); 
+    stepTitle.classList.remove('active');
+    stepExercises.classList.add('active');
+
+    const exIndex = tempExercises.findIndex((e, i) => i === idx);
+    exName.value = ex.name;
+    exDesc.value = ex.desc;
+    exReps.value = ex.reps;
+    exMin.value = ex.min;
+    exSec.value = ex.sec;
+    saveExerciseBtn.dataset.editIndex = exIndex;
+
+    closeView();
+}
+
+function deleteViewExercise(idx) {
+    const w = workouts.find(x => x.id === activeViewId);
+    if (!w) return;
+    if (!confirm('Удалить это упражнение?')) return;
+
+    w.exercises.splice(idx, 1);
+    if (editingWorkoutId === activeViewId) {
+        tempExercises = JSON.parse(JSON.stringify(w.exercises));
+        renderExerciseCards();
+        updateSaveTrainingBtn();
+    }
+    renderViewExercises();
+}
+
+function openView(id) {
+    activeViewId = id;
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    viewModal.classList.add('show');
+
+    const w = workouts.find(x => x.id === id);
+    viewTitle.textContent = w.title || w.name;
+    renderViewExercises();
+}
+
+function closeView() {
+    viewModal.classList.remove('show');
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+    activeViewId = null;
+}
+
+/* ====== Event listeners for modals ====== */
+openCreateModal.addEventListener('click', () => openCreate());
+closeCreateModal.addEventListener('click', closeCreate);
+overlay.addEventListener('click', () => {
+    if (viewModal.classList.contains('show')) closeView();
+    else if (profileModal.classList.contains('show')) closeProfileBtn.click();
+    else closeCreate();
+});
+backToTitleBtn.addEventListener('click', () => {
+    stepTitle.classList.add('active');
+    stepExercises.classList.remove('active');
 });
 
 /* ====== Delete Workout ====== */
