@@ -1,7 +1,7 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "http://localhost:5000"; // URL твоего Web API
+const API_BASE = "http://localhost:5000"; 
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
@@ -27,8 +27,6 @@ const openCreateModal = document.getElementById('openCreateModal');
 const closeCreateModal = document.getElementById('closeCreateModal');
 const stepTitle = document.getElementById('stepTitle');
 const stepExercises = document.getElementById('stepExercises');
-const toExercisesBtn = document.getElementById('toExercisesBtn');
-const backToTitleBtn = document.getElementById('backToTitleBtn');
 const trainingTitleDisplay = document.getElementById('trainingTitleDisplay');
 const toggleExerciseFormBtn = document.getElementById('toggleExerciseFormBtn');
 const exerciseForm = document.getElementById('exerciseForm');
@@ -59,7 +57,6 @@ const viewTitle = document.getElementById('viewTitle');
 const viewBody = document.getElementById('viewBody');
 const closeViewBtn = document.getElementById('closeViewBtn');
 const editWorkoutBtn = document.getElementById('editWorkoutBtn');
-const startWorkoutBtn = document.getElementById('startWorkoutBtn');
 const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
 
 /* ====== Data ====== */
@@ -81,12 +78,11 @@ async function api(path, method = 'GET', data = null) {
 
 /* ====== User API ====== */
 async function registerUser() {
-    const res = await api('/api/register_user', 'POST', {
+    return await api('/api/register_user', 'POST', {
         telegram_id: tgUser.id,
         username: tgUser.username || tgUser.first_name,
         avatar_url: tgUser.photo_url
     });
-    return res;
 }
 
 async function getProfile() {
@@ -96,6 +92,8 @@ async function getProfile() {
     createdCount.textContent = profile.total_workouts || 0;
     completedCount.textContent = profile.completed_workouts || 0;
     notifyTime.value = profile.notify_time || '';
+    overlay.style.opacity = '1'; overlay.style.pointerEvents = 'auto';
+    profileModal.classList.add('show'); profileModal.setAttribute('aria-hidden', 'false');
 }
 
 /* ====== Workouts API ====== */
@@ -163,7 +161,7 @@ function closeView() {
     viewModal.classList.remove('show'); overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; activeViewId = null;
 }
 
-/* ====== Event listeners for modals ====== */
+/* ====== Event listeners ====== */
 openCreateModal.addEventListener('click', () => openCreate());
 closeCreateModal.addEventListener('click', closeCreate);
 overlay.addEventListener('click', () => {
@@ -172,7 +170,10 @@ overlay.addEventListener('click', () => {
     else closeCreate();
 });
 
-/* ====== Exercises ====== */
+profileBtn.addEventListener('click', getProfile);
+closeProfileBtn.addEventListener('click', () => { overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; profileModal.classList.remove('show'); profileModal.setAttribute('aria-hidden', 'true'); });
+saveProfileBtn.addEventListener('click', async () => { await saveProfileToServer({ user_id: tgUser.id, notify_time: notifyTime.value }); alert('Настройки сохранены'); });
+
 toggleExerciseFormBtn.addEventListener('click', () => { exerciseForm.classList.toggle('active'); if (exerciseForm.classList.contains('active')) exName.focus(); });
 cancelExerciseBtn.addEventListener('click', () => { exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = ''; exerciseForm.classList.remove('active'); });
 
@@ -196,7 +197,16 @@ saveTrainingBtn.addEventListener('click', async () => {
     await loadWorkouts(); closeCreate();
 });
 
-/* ====== Render workouts ====== */
+closeViewBtn.addEventListener('click', closeView);
+deleteWorkoutBtn.addEventListener('click', async () => {
+    if (!activeViewId) return;
+    if (!confirm("Удалить эту тренировку?")) return;
+    await deleteWorkoutFromServer(activeViewId);
+    await loadWorkouts();
+    closeView();
+});
+
+/* ====== Render ====== */
 function renderWorkouts() {
     workoutContainer.innerHTML = '';
     if (!workouts.length) { workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; return; }
@@ -207,7 +217,6 @@ function renderWorkouts() {
     });
 }
 
-/* ====== Exercise cards ====== */
 function renderExerciseCards() {
     exerciseList.innerHTML = '';
     tempExercises.forEach((ex, idx) => {
@@ -220,11 +229,6 @@ function renderExerciseCards() {
 function editExercise(idx) { const ex = tempExercises[idx]; exName.value = ex.name; exDesc.value = ex.desc; exReps.value = ex.reps; exMin.value = ex.min; exSec.value = ex.sec; exerciseForm.classList.add('active'); saveExerciseBtn.dataset.editIndex = idx; }
 function deleteExercise(idx) { tempExercises.splice(idx, 1); renderExerciseCards(); updateSaveTrainingBtn(); }
 function updateSaveTrainingBtn() { saveTrainingBtn.disabled = tempExercises.length < 1; saveTrainingBtn.classList.toggle('disabled', tempExercises.length < 1); }
-
-/* ====== Profile ====== */
-profileBtn.addEventListener('click', getProfile);
-closeProfileBtn.addEventListener('click', () => { overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none'; profileModal.classList.remove('show'); profileModal.setAttribute('aria-hidden', 'true'); });
-saveProfileBtn.addEventListener('click', async () => { await saveProfileToServer({ user_id: tgUser.id, notify_time: notifyTime.value }); alert('Настройки сохранены'); });
 
 /* ====== Delete Workout ====== */
 deleteWorkoutBtn.addEventListener('click', async () => {
