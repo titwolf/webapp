@@ -1,7 +1,7 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "https://fitappplan.onrender.com";
+const API_BASE = "http://localhost:5000";
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
@@ -102,6 +102,13 @@ async function saveWorkoutToServer(payload){
 
 async function saveProfileToServer(payload){
   return await api('/api/save_profile','POST', payload);
+}
+
+async function deleteWorkoutFromServer(id){
+  return await api('/api/delete_workout', 'POST', {
+    id: id,
+    user_id: tgUser.id
+  });
 }
 
 /* ====== Open/Close modals ====== */
@@ -226,6 +233,18 @@ saveProfileBtn.addEventListener('click', async()=>{
   const time=notifyTime.value;
   await saveProfileToServer({user_id:tgUser.id, notify_time:time});
   alert('Настройки сохранены');
+});
+
+/* ====== DeleteWorkoutBtn ======*/
+deleteWorkoutBtn.addEventListener('click', async () => {
+  if (!activeViewId) return;
+
+  const conf = confirm("Удалить эту тренировку?");
+  if (!conf) return;
+
+  await deleteWorkoutFromServer(activeViewId);
+  await loadWorkouts();
+  closeView();
 });
 
 /* ====== Init ====== */
