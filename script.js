@@ -115,9 +115,9 @@ async function loadWorkouts() {
 }
 
 async function saveWorkoutToServer(payload) {
-    // После сохранения сервер возвращает объект тренировки (лучше, чем только success)
+    // После сохранения сервер возвращает объект тренировки с id и exercises
     const savedWorkout = await api('/api/save_workout', 'POST', payload);
-    return savedWorkout; 
+    return savedWorkout;
 }
 
 async function deleteWorkoutFromServer(id) {
@@ -266,6 +266,7 @@ saveTrainingBtn.addEventListener('click', async () => {
     } else {
         workouts.push(savedWorkout);
     }
+
     renderWorkouts();
     closeCreate();
 });
