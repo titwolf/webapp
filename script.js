@@ -380,17 +380,30 @@ editWorkoutBtn.addEventListener('click', () => {
 });
 
 deleteWorkoutBtn.addEventListener('click', async () => {
-    if (!activeViewId) return;
+    if (!activeViewId) {
+        console.log("activeViewId пустой");
+        return;
+    }
+
     if (!confirm("Удалить эту тренировку?")) return;
 
-    await deleteWorkoutFromServer(activeViewId);
+    try {
+        console.log("Удаляем тренировку с id:", activeViewId);
+        const res = await deleteWorkoutFromServer(activeViewId);
+        console.log("Ответ сервера:", res);
 
-    // Приводим ID к числу для фильтра
-    const idToRemove = Number(activeViewId);
-    workouts = workouts.filter(w => Number(w.id) !== idToRemove);
+        // Приводим ID к числу
+        const idToRemove = Number(activeViewId);
+        console.log("Фильтруем массив, idToRemove:", idToRemove);
+        workouts = workouts.filter(w => Number(w.id) !== idToRemove);
 
-    renderWorkouts();
-    closeView();
+        console.log("Массив после фильтрации:", workouts);
+
+        renderWorkouts();  // Обновляем список
+        closeView();       // Закрываем модалку
+    } catch (err) {
+        console.error("Ошибка при удалении:", err);
+    }
 });
 
 
