@@ -1,7 +1,7 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "http://localhost:5000"; // URL твоего Web API
+const API_BASE = "http://localhost:5000"; 
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
@@ -120,7 +120,7 @@ async function saveWorkoutToServer(payload) {
 }
 
 async function deleteWorkoutFromServer(id) {
-    return await api('/api/delete_workout', 'POST', { id, user_id: tgUser.id });
+    return await api('/api/delete_workout', 'POST', { workoutId: id, user_id: tgUser.id });
 }
 
 /* ====== Modals ====== */
@@ -145,10 +145,10 @@ function openCreate(editId = null) {
         const w = workouts.find(x => x.id === editId);
         if (!w) return;
         editingWorkoutId = w.id;
-        inputTrainingName.value = w.name;
-        currentTempTitle = w.name;
+        inputTrainingName.value = w.title || w.name;
+        currentTempTitle = w.title || w.name;
         tempExercises = JSON.parse(JSON.stringify(w.exercises));
-        trainingTitleDisplay.textContent = w.name;
+        trainingTitleDisplay.textContent = currentTempTitle;
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
         renderExerciseCards();
@@ -231,10 +231,11 @@ function renderWorkouts() {
     workoutContainer.innerHTML = '';
     if (!workouts.length) { workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; return; }
     workouts.forEach(w => {
+        const title = w.title || w.name || 'Без названия';
         const div = document.createElement('div');
         div.className = 'workout-card';
         div.onclick = () => openView(w.id);
-        div.innerHTML = `<div class="workout-title">${w.name}</div><div class="workout-info">${w.exercises.length} упражнений</div>`;
+        div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${w.exercises.length} упражнений</div>`;
         workoutContainer.appendChild(div);
     });
 }
@@ -282,7 +283,7 @@ saveProfileBtn.addEventListener('click', async () => {
     alert('Настройки сохранены');
 });
 
-/* ====== View Modal with inline edit/delete ====== */
+/* ====== View Modal with inline exercises ====== */
 function renderViewExercises() {
     const w = workouts.find(x => x.id === activeViewId);
     if (!w) return;
@@ -309,13 +310,13 @@ function renderViewExercises() {
 function editViewExercise(idx) {
     const w = workouts.find(x => x.id === activeViewId);
     if (!w) return;
-    const ex = w.exercises[idx];
 
-    openCreate(activeViewId); 
+    openCreate(activeViewId);
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
-    const exIndex = tempExercises.findIndex((e, i) => i === idx);
+    const ex = w.exercises[idx];
+    const exIndex = tempExercises.findIndex((_, i) => i === idx);
     exName.value = ex.name;
     exDesc.value = ex.desc;
     exReps.value = ex.reps;
@@ -347,7 +348,7 @@ function openView(id) {
     viewModal.classList.add('show');
 
     const w = workouts.find(x => x.id === id);
-    viewTitle.textContent = w.title || w.name;
+    viewTitle.textContent = w.title || w.name || 'Без названия';
     renderViewExercises();
 }
 
@@ -371,7 +372,13 @@ backToTitleBtn.addEventListener('click', () => {
     stepExercises.classList.remove('active');
 });
 
-/* ====== Delete Workout ====== */
+/* ====== Edit/Delete workout ====== */
+editWorkoutBtn.addEventListener('click', () => {
+    if (!activeViewId) return;
+    closeView();
+    openCreate(activeViewId);
+});
+
 deleteWorkoutBtn.addEventListener('click', async () => {
     if (!activeViewId) return;
     if (!confirm("Удалить эту тренировку?")) return;
