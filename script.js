@@ -120,7 +120,7 @@ async function saveWorkoutToServer(payload) {
 }
 
 async function deleteWorkoutFromServer(id) {
-    return await api('/api/delete_workout', 'POST', { workoutId: id, user_id: tgUser.id });
+    return await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
 }
 
 /* ====== Modals ====== */
