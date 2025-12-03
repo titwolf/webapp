@@ -382,11 +382,17 @@ editWorkoutBtn.addEventListener('click', () => {
 deleteWorkoutBtn.addEventListener('click', async () => {
     if (!activeViewId) return;
     if (!confirm("Удалить эту тренировку?")) return;
+
     await deleteWorkoutFromServer(activeViewId);
-    workouts = workouts.filter(w => w.id !== activeViewId);
+
+    // Приводим ID к числу для фильтра
+    const idToRemove = Number(activeViewId);
+    workouts = workouts.filter(w => Number(w.id) !== idToRemove);
+
     renderWorkouts();
     closeView();
 });
+
 
 /* ====== Init ====== */
 window.addEventListener('DOMContentLoaded', loadWorkouts);
