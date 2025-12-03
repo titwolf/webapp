@@ -58,6 +58,7 @@ const viewBody = document.getElementById('viewBody');
 const closeViewBtn = document.getElementById('closeViewBtn');
 const editWorkoutBtn = document.getElementById('editWorkoutBtn');
 const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
+const toExercisesBtn = document.getElementById('toExercisesBtn');
 
 /* ====== Data ====== */
 let workouts = [];
@@ -86,17 +87,35 @@ async function registerUser() {
 }
 
 async function getProfile() {
-    const profile = await api(`/api/get_profile?user_id=${tgUser.id}`);
-    profileAvatar.src = profile.avatar_url || tgUser.photo_url || profileAvatar.src;
-    profileName.textContent = profile.username ? `@${profile.username}` : tgUser.first_name;
-    createdCount.textContent = profile.total_workouts || 0;
-    completedCount.textContent = profile.completed_workouts || 0;
-    notifyTime.value = profile.notify_time || '';
-    overlay.style.opacity = '1'; overlay.style.pointerEvents = 'auto';
-    profileModal.classList.add('show'); profileModal.setAttribute('aria-hidden', 'false');
+    try {
+        const profile = await api(`/api/get_profile?user_id=${tgUser.id}`);
+        console.log(profile); // <-- Посмотреть что реально приходит
+
+        profileAvatar.src = profile.avatar_url ?? tgUser.photo_url ?? profileAvatar.src;
+        profileName.textContent = profile.username ? `@${profile.username}` : tgUser.first_name;
+        createdCount.textContent = profile.total_workouts ?? 0;
+        completedCount.textContent = profile.completed_workouts ?? 0;
+        notifyTime.value = profile.notify_time ?? '';
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+        profileModal.classList.add('show');
+        profileModal.setAttribute('aria-hidden', 'false');
+    } catch(e) {
+        console.error('Ошибка при получении профиля', e);
+    }
 }
 
 /* ====== Workouts API ====== */
+
+toExercisesBtn.addEventListener('click', () => {
+    const title = inputTrainingName.value.trim();
+    if (!title) return alert('Введите название тренировки');
+    currentTempTitle = title;
+    trainingTitleDisplay.textContent = title;
+    stepTitle.classList.remove('active');
+    stepExercises.classList.add('active');
+});
+
 async function loadWorkouts() {
     await registerUser();
     const res = await api(`/api/get_workouts?user_id=${tgUser.id}`);
