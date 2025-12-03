@@ -392,11 +392,9 @@ deleteWorkoutBtn.addEventListener('click', async () => {
         const res = await deleteWorkoutFromServer(activeViewId);
         console.log("Ответ сервера:", res);
 
-        // Приводим ID к числу
+        // Удаляем из локального массива, приводя ID к числу
         const idToRemove = Number(activeViewId);
-        console.log("Фильтруем массив, idToRemove:", idToRemove);
         workouts = workouts.filter(w => Number(w.id) !== idToRemove);
-
         console.log("Массив после фильтрации:", workouts);
 
         renderWorkouts();  // Обновляем список
@@ -405,6 +403,7 @@ deleteWorkoutBtn.addEventListener('click', async () => {
         console.error("Ошибка при удалении:", err);
     }
 });
+
 
 
 /* ====== Init ====== */
