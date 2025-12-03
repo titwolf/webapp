@@ -1,7 +1,7 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "http://localhost:5000"; // URL твоего Web API
+const API_BASE = "http://localhost:5000"; 
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
@@ -9,14 +9,8 @@ let tgUser = { id: null, first_name: "Пользователь", username: "", p
 window.Telegram.WebApp.ready();
 if (window.Telegram.WebApp.initDataUnsafe?.user) {
     tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+    document.getElementById('userAvatar').src = tgUser.photo_url || "https://via.placeholder.com/80";
 }
-
-// Автообновление аватара в top-bar
-function updateTopBarAvatar() {
-    const topAvatar = document.getElementById('userAvatar');
-    topAvatar.src = tgUser.photo_url || "https://via.placeholder.com/80";
-}
-updateTopBarAvatar();
 
 /* ====== Top bar hide on scroll ====== */
 window.addEventListener('scroll', () => {
@@ -96,18 +90,12 @@ async function registerUser() {
 
 async function getProfile() {
     const profile = await api(`/api/get_profile?user_id=${tgUser.id}`);
-
-    // Подставляем данные из Telegram если нет данных в профиле
     profileAvatar.src = profile.avatar_url || tgUser.photo_url;
     profileName.textContent = profile.username ? `@${profile.username}` : tgUser.first_name;
     createdCount.textContent = profile.total_workouts || 0;
     completedCount.textContent = profile.completed_workouts || 0;
     notifyTime.value = profile.notify_time || '';
 
-    // Автообновление аватара в верхней панели
-    updateTopBarAvatar();
-
-    // Показываем модалку
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     profileModal.classList.add('show');
@@ -195,6 +183,11 @@ function openView(id) {
         </div>${ex.desc ? `<div style="margin-top:6px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}`;
         viewBody.appendChild(div);
     });
+
+    startWorkoutBtn.onclick = () => {
+        sessionStorage.setItem('currentWorkout', JSON.stringify(w));
+        window.location.href = 'gowk.html';
+    };
 }
 
 function closeView() {
@@ -264,10 +257,17 @@ toExercisesBtn.addEventListener('click', () => {
 /* Сохранение тренировки */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
-    const payload = { user_id: tgUser.id, title: currentTempTitle, exercises: tempExercises };
+
+    const payload = { 
+        user_id: tgUser.id, 
+        title: currentTempTitle, 
+        exercises: tempExercises 
+    };
     if (editingWorkoutId) payload.id = editingWorkoutId;
-    await saveWorkoutToServer(payload);
-    await loadWorkouts();
+
+    const savedWorkout = await saveWorkoutToServer(payload);
+    if (!editingWorkoutId) workouts.push(savedWorkout);
+    renderWorkouts();
     closeCreate();
 });
 
