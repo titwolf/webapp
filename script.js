@@ -1,7 +1,7 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "http://localhost:5000"; 
+const API_BASE = "http://localhost:5000"; // URL твоего Web API
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
@@ -115,7 +115,9 @@ async function loadWorkouts() {
 }
 
 async function saveWorkoutToServer(payload) {
-    return await api('/api/save_workout', 'POST', payload);
+    // После сохранения сервер возвращает объект тренировки (лучше, чем только success)
+    const savedWorkout = await api('/api/save_workout', 'POST', payload);
+    return savedWorkout; 
 }
 
 async function deleteWorkoutFromServer(id) {
@@ -183,11 +185,6 @@ function openView(id) {
         </div>${ex.desc ? `<div style="margin-top:6px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}`;
         viewBody.appendChild(div);
     });
-
-    startWorkoutBtn.onclick = () => {
-        sessionStorage.setItem('currentWorkout', JSON.stringify(w));
-        window.location.href = 'gowk.html';
-    };
 }
 
 function closeView() {
@@ -257,16 +254,18 @@ toExercisesBtn.addEventListener('click', () => {
 /* Сохранение тренировки */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
-
-    const payload = { 
-        user_id: tgUser.id, 
-        title: currentTempTitle, 
-        exercises: tempExercises 
-    };
+    const payload = { user_id: tgUser.id, title: currentTempTitle, exercises: tempExercises };
     if (editingWorkoutId) payload.id = editingWorkoutId;
 
     const savedWorkout = await saveWorkoutToServer(payload);
-    if (!editingWorkoutId) workouts.push(savedWorkout);
+
+    // Обновляем массив и отрисовываем карточки сразу
+    if (editingWorkoutId) {
+        const index = workouts.findIndex(w => w.id === editingWorkoutId);
+        if (index > -1) workouts[index] = savedWorkout;
+    } else {
+        workouts.push(savedWorkout);
+    }
     renderWorkouts();
     closeCreate();
 });
@@ -332,7 +331,8 @@ deleteWorkoutBtn.addEventListener('click', async () => {
     if (!activeViewId) return;
     if (!confirm("Удалить эту тренировку?")) return;
     await deleteWorkoutFromServer(activeViewId);
-    await loadWorkouts();
+    workouts = workouts.filter(w => w.id !== activeViewId);
+    renderWorkouts();
     closeView();
 });
 
