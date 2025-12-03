@@ -146,10 +146,10 @@ function openCreate(editId = null) {
         const w = workouts.find(x => x.id === editId);
         if (!w) return;
         editingWorkoutId = w.id;
-        inputTrainingName.value = w.title;
-        currentTempTitle = w.title;
+        inputTrainingName.value = w.name;
+        currentTempTitle = w.name;
         tempExercises = JSON.parse(JSON.stringify(w.exercises));
-        trainingTitleDisplay.textContent = w.title;
+        trainingTitleDisplay.textContent = w.name;
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
         renderExerciseCards();
@@ -173,7 +173,7 @@ function openView(id) {
     overlay.style.pointerEvents = 'auto';
     viewModal.classList.add('show');
 
-    viewTitle.textContent = w.title;
+    viewTitle.textContent = w.name;
     viewBody.innerHTML = '';
 
     w.exercises.forEach((ex, idx) => {
@@ -243,10 +243,10 @@ saveExerciseBtn.addEventListener('click', () => {
 
 /* Переключение на шаг упражнений */
 toExercisesBtn.addEventListener('click', () => {
-    const title = inputTrainingName.value.trim();
-    if (!title) { alert('Введите название тренировки'); return; }
-    currentTempTitle = title;
-    trainingTitleDisplay.textContent = title;
+    const name = inputTrainingName.value.trim();
+    if (!name) { alert('Введите название тренировки'); return; }
+    currentTempTitle = name;
+    trainingTitleDisplay.textContent = name;
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 });
@@ -254,12 +254,11 @@ toExercisesBtn.addEventListener('click', () => {
 /* Сохранение тренировки */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
-    const payload = { user_id: tgUser.id, title: currentTempTitle, exercises: tempExercises };
+    const payload = { user_id: tgUser.id, name: currentTempTitle, exercises: tempExercises };
     if (editingWorkoutId) payload.id = editingWorkoutId;
 
     const savedWorkout = await saveWorkoutToServer(payload);
 
-    // Обновляем массив и отрисовываем карточки сразу
     if (editingWorkoutId) {
         const index = workouts.findIndex(w => w.id === editingWorkoutId);
         if (index > -1) workouts[index] = savedWorkout;
@@ -279,7 +278,7 @@ function renderWorkouts() {
         const div = document.createElement('div');
         div.className = 'workout-card';
         div.onclick = () => openView(w.id);
-        div.innerHTML = `<div class="workout-title">${w.title}</div><div class="workout-info">${w.exercises.length} упражнений</div>`;
+        div.innerHTML = `<div class="workout-title">${w.name}</div><div class="workout-info">${w.exercises.length} упражнений</div>`;
         workoutContainer.appendChild(div);
     });
 }
