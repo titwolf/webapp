@@ -1,13 +1,13 @@
 /* ====== Общие элементы ====== */
 const topBar = document.getElementById('topBar');
 const overlay = document.getElementById('overlay');
-const API_BASE = "http://localhost:5000"; 
+const API_BASE = "http://localhost:5000";
 let lastScroll = 0;
 
 /* ====== Telegram WebApp integration ====== */
 let tgUser = { id: null, first_name: "Пользователь", username: "", photo_url: "https://via.placeholder.com/80" };
-window.Telegram.WebApp.ready();
-if (window.Telegram.WebApp.initDataUnsafe?.user) {
+window.Telegram?.WebApp?.ready();
+if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
     tgUser = window.Telegram.WebApp.initDataUnsafe.user;
     document.getElementById('userAvatar').src = tgUser.photo_url || "https://via.placeholder.com/80";
 }
@@ -66,8 +66,8 @@ const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
 let workouts = [];
 let currentTempTitle = '';
 let tempExercises = [];
-let editingWorkoutId = null;
-let activeViewId = null;
+let editingWorkoutId = null; // null or numeric id of workout being edited
+let activeViewId = null; // id of workout opened in view modal
 
 /* ====== API Helper ====== */
 async function api(path, method = 'GET', data = null) {
@@ -76,22 +76,32 @@ async function api(path, method = 'GET', data = null) {
         headers: { 'Content-Type': 'application/json' },
         body: data ? JSON.stringify(data) : null
     });
-    return res.json();
+    if (!res.ok) {
+        // try to provide some debug info
+        const text = await res.text();
+        throw new Error(`API error ${res.status}: ${text}`);
+    }
+    // могут быть ответы без тела (204) -> тогда res.json() выбросит, поэтому проверяем
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) return res.json();
+    return null;
 }
 
 /* ====== User API ====== */
+// NOTE: backend UserController expects User object with fields Id, Username, AvatarUrl
 async function registerUser() {
+    if (!tgUser?.id) return;
     await api('/api/register_user', 'POST', {
-        telegram_id: tgUser.id,
-        username: tgUser.username || tgUser.first_name,
-        avatar_url: tgUser.photo_url
+        Id: tgUser.id,
+        Username: tgUser.username || tgUser.first_name,
+        AvatarUrl: tgUser.photo_url || ""
     });
 }
 
 async function getProfile() {
     const profile = await api(`/api/get_profile?user_id=${tgUser.id}`);
     profileAvatar.src = profile.avatar_url || tgUser.photo_url;
-    profileName.textContent = profile.username ? `@${profile.username}` : tgUser.first_name;
+    profileName.textContent = profile.username ? `@${profile.username}` : (tgUser.first_name || "");
     createdCount.textContent = profile.total_workouts || 0;
     completedCount.textContent = profile.completed_workouts || 0;
     notifyTime.value = profile.notify_time || '';
@@ -108,15 +118,46 @@ async function saveProfileToServer(payload) {
 
 /* ====== Workouts API ====== */
 async function loadWorkouts() {
-    await registerUser();
-    const res = await api(`/api/get_workouts?user_id=${tgUser.id}`);
-    workouts = res || [];
-    renderWorkouts();
+    try {
+        await registerUser();
+        const res = await api(`/api/get_workouts?user_id=${tgUser.id}`);
+        workouts = res || [];
+        // normalize backward compatibility: ensure each workout has title and name and exercises array
+        workouts = workouts.map(w => ({
+            id: w.id,
+            title: w.title || w.name || '',
+            name: w.name || w.title || '',
+            user_id: w.user_id,
+            exercises: w.exercises || []
+        }));
+        renderWorkouts();
+    } catch (err) {
+        console.error("loadWorkouts error:", err);
+    }
 }
 
 async function saveWorkoutToServer(payload) {
-    const savedWorkout = await api('/api/save_workout', 'POST', payload);
-    return savedWorkout;
+    // backend expects { id, user_id, title, exercises }
+    const body = {
+        id: payload.id || 0,
+        user_id: payload.user_id,
+        title: payload.title,
+        exercises: payload.exercises.map(e => ({
+            name: e.name,
+            reps: e.reps,
+            sets: e.sets ?? 1,
+            min: e.min ?? 0,
+            sec: e.sec ?? 0,
+            desc: e.desc ?? ""
+        }))
+    };
+    const saved = await api('/api/save_workout', 'POST', body);
+    // normalize returned object
+    if (!saved) return null;
+    saved.title = saved.title || saved.name || '';
+    saved.name = saved.name || saved.title || '';
+    saved.exercises = saved.exercises || [];
+    return saved;
 }
 
 async function deleteWorkoutFromServer(id) {
@@ -134,6 +175,7 @@ function openCreate(editId = null) {
     stepExercises.classList.remove('active');
     exerciseForm.classList.remove('active');
 
+    // reset fields
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
@@ -141,13 +183,24 @@ function openCreate(editId = null) {
     renderExerciseCards();
     updateSaveTrainingBtn();
 
-    if (editId) {
-        const w = workouts.find(x => x.id === editId);
+    if (editId !== null && editId !== undefined) {
+        // find the workout and populate fields
+        const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
-        editingWorkoutId = w.id;
-        inputTrainingName.value = w.title || w.name;
-        currentTempTitle = w.title || w.name;
-        tempExercises = JSON.parse(JSON.stringify(w.exercises));
+        editingWorkoutId = Number(w.id);
+        inputTrainingName.value = w.title || w.name || '';
+        currentTempTitle = w.title || w.name || '';
+        // deep clone exercises to tempExercises
+        tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
+        // ensure exercise objects have required fields
+        tempExercises = tempExercises.map(e => ({
+            name: e.name || e.Name || '',
+            desc: e.desc ?? '',
+            reps: e.reps ?? 0,
+            min: e.min ?? 0,
+            sec: e.sec ?? 0,
+            sets: e.sets ?? 1
+        }));
         trainingTitleDisplay.textContent = currentTempTitle;
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
@@ -161,6 +214,8 @@ function closeCreate() {
     overlay.style.pointerEvents = 'none';
     createModal.style.bottom = '-110%';
     createModal.setAttribute('aria-hidden', 'true');
+    // clear editing state
+    editingWorkoutId = null;
 }
 
 /* ====== Exercises ====== */
@@ -185,10 +240,10 @@ saveExerciseBtn.addEventListener('click', () => {
 
     const editIndex = saveExerciseBtn.dataset.editIndex;
     if (editIndex !== undefined && editIndex !== '') {
-        tempExercises[+editIndex] = { name, desc, reps, min, sec };
+        tempExercises[+editIndex] = { name, desc, reps, min, sec, sets: 1 };
         delete saveExerciseBtn.dataset.editIndex;
     } else {
-        tempExercises.push({ name, desc, reps, min, sec });
+        tempExercises.push({ name, desc, reps, min, sec, sets: 1 });
     }
 
     exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
@@ -210,20 +265,42 @@ toExercisesBtn.addEventListener('click', () => {
 /* ====== Save workout ====== */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
-    const payload = { user_id: tgUser.id, name: currentTempTitle, exercises: tempExercises };
-    if (editingWorkoutId) payload.id = editingWorkoutId;
+    const payload = {
+        id: editingWorkoutId || 0,
+        user_id: tgUser.id,
+        title: currentTempTitle,
+        exercises: tempExercises
+    };
 
-    const savedWorkout = await saveWorkoutToServer(payload);
+    try {
+        const savedWorkout = await saveWorkoutToServer(payload);
+        if (!savedWorkout) throw new Error("Не удалось сохранить тренировку");
 
-    if (editingWorkoutId) {
-        const index = workouts.findIndex(w => w.id === editingWorkoutId);
-        if (index > -1) workouts[index] = savedWorkout;
-    } else {
-        workouts.push(savedWorkout);
+        if (editingWorkoutId) {
+            const index = workouts.findIndex(w => Number(w.id) === Number(editingWorkoutId));
+            if (index > -1) workouts[index] = {
+                id: savedWorkout.id,
+                title: savedWorkout.title,
+                name: savedWorkout.name,
+                user_id: savedWorkout.user_id,
+                exercises: savedWorkout.exercises
+            };
+        } else {
+            workouts.push({
+                id: savedWorkout.id,
+                title: savedWorkout.title,
+                name: savedWorkout.name,
+                user_id: savedWorkout.user_id,
+                exercises: savedWorkout.exercises
+            });
+        }
+
+        renderWorkouts();
+        closeCreate();
+    } catch (err) {
+        console.error("saveTraining error:", err);
+        alert("Ошибка при сохранении тренировки. Посмотрите консоль.");
     }
-
-    renderWorkouts();
-    closeCreate();
 });
 
 /* ====== Render workouts ====== */
@@ -235,12 +312,12 @@ function renderWorkouts() {
         const div = document.createElement('div');
         div.className = 'workout-card';
         div.onclick = () => openView(w.id);
-        div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${w.exercises.length} упражнений</div>`;
+        div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${(w.exercises || []).length} упражнений</div>`;
         workoutContainer.appendChild(div);
     });
 }
 
-/* ====== Exercise cards ====== */
+/* ====== Exercise cards (in create modal) ====== */
 function renderExerciseCards() {
     exerciseList.innerHTML = '';
     tempExercises.forEach((ex, idx) => {
@@ -279,17 +356,17 @@ closeProfileBtn.addEventListener('click', () => {
     profileModal.setAttribute('aria-hidden', 'true');
 });
 saveProfileBtn.addEventListener('click', async () => {
-    await saveProfileToServer({ user_id: tgUser.id, notify_time: notifyTime.value });
+    await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value });
     alert('Настройки сохранены');
 });
 
 /* ====== View Modal with inline exercises ====== */
 function renderViewExercises() {
-    const w = workouts.find(x => x.id === activeViewId);
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
     viewBody.innerHTML = '';
 
-    w.exercises.forEach((ex, idx) => {
+    (w.exercises || []).forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'view-ex';
         div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
@@ -308,47 +385,66 @@ function renderViewExercises() {
 }
 
 function editViewExercise(idx) {
-    const w = workouts.find(x => x.id === activeViewId);
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
 
+    // open create modal in edit mode
     openCreate(activeViewId);
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
-    const ex = w.exercises[idx];
-    const exIndex = tempExercises.findIndex((_, i) => i === idx);
+    // ensure tempExercises is populated by openCreate
+    // set exercise form fields to the correct exercise and set edit index
+    const ex = tempExercises[idx];
+    if (!ex) return;
     exName.value = ex.name;
     exDesc.value = ex.desc;
     exReps.value = ex.reps;
     exMin.value = ex.min;
     exSec.value = ex.sec;
-    saveExerciseBtn.dataset.editIndex = exIndex;
+    // set dataset to idx (the index inside tempExercises)
+    saveExerciseBtn.dataset.editIndex = idx;
 
+    // close view modal (we already opened create)
     closeView();
 }
 
 function deleteViewExercise(idx) {
-    const w = workouts.find(x => x.id === activeViewId);
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
     if (!confirm('Удалить это упражнение?')) return;
 
+    // remove from local view
     w.exercises.splice(idx, 1);
-    if (editingWorkoutId === activeViewId) {
+
+    // if currently editing this workout, sync tempExercises
+    if (editingWorkoutId === Number(activeViewId)) {
         tempExercises = JSON.parse(JSON.stringify(w.exercises));
         renderExerciseCards();
         updateSaveTrainingBtn();
     }
+
+    // persist change: update workout on server by saving whole workout (quick approach)
+    // (Alternatively require explicit Save in edit modal — here we'll call save on server to persist immediate deletion)
+    (async () => {
+        try {
+            await saveWorkoutToServer({ id: w.id, user_id: w.user_id, title: w.title, exercises: w.exercises });
+        } catch (err) {
+            console.error("Ошибка при сохранении после удаления упражнения:", err);
+        }
+    })();
+
     renderViewExercises();
 }
 
 function openView(id) {
-    activeViewId = id;
+    activeViewId = Number(id);
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     viewModal.classList.add('show');
 
-    const w = workouts.find(x => x.id === id);
-    viewTitle.textContent = w.title || w.name || 'Без названия';
+    const w = workouts.find(x => Number(x.id) === Number(id));
+    viewTitle.textContent = w?.title || w?.name || 'Без названия';
     renderViewExercises();
 }
 
@@ -372,28 +468,29 @@ backToTitleBtn.addEventListener('click', () => {
     stepExercises.classList.remove('active');
 });
 
-/* ====== Edit/Delete workout ====== */
+/* ====== Edit/Delete workout buttons in view modal ====== */
 editWorkoutBtn.addEventListener('click', () => {
-    if (!activeViewId) return;
+    if (activeViewId === null) return;
     closeView();
     openCreate(activeViewId);
 });
 
 deleteWorkoutBtn.addEventListener('click', async () => {
-    if (!activeViewId) return;
+    if (activeViewId === null) return;
     if (!confirm("Удалить эту тренировку?")) return;
 
     try {
-        const res = await deleteWorkoutFromServer(Number(activeViewId));
+        await deleteWorkoutFromServer(Number(activeViewId));
         workouts = workouts.filter(w => Number(w.id) !== Number(activeViewId));
         renderWorkouts();
         closeView();
     } catch (err) {
         console.error("Ошибка при удалении:", err);
+        alert("Ошибка при удалении тренировки. Посмотрите консоль.");
     }
 });
 
-
+closeViewBtn.addEventListener('click', closeView);
 
 /* ====== Init ====== */
 window.addEventListener('DOMContentLoaded', loadWorkouts);
