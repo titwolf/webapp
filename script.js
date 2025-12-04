@@ -77,18 +77,15 @@ async function api(path, method = 'GET', data = null) {
         body: data ? JSON.stringify(data) : null
     });
     if (!res.ok) {
-        // try to provide some debug info
         const text = await res.text();
         throw new Error(`API error ${res.status}: ${text}`);
     }
-    // могут быть ответы без тела (204) -> тогда res.json() выбросит, поэтому проверяем
     const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) return res.json();
     return null;
 }
 
 /* ====== User API ====== */
-// NOTE: backend UserController expects User object with fields Id, Username, AvatarUrl
 async function registerUser() {
     if (!tgUser?.id) return;
     await api('/api/register_user', 'POST', {
@@ -122,7 +119,6 @@ async function loadWorkouts() {
         await registerUser();
         const res = await api(`/api/get_workouts?user_id=${tgUser.id}`);
         workouts = res || [];
-        // normalize backward compatibility: ensure each workout has title and name and exercises array
         workouts = workouts.map(w => ({
             id: w.id,
             title: w.title || w.name || '',
@@ -137,7 +133,6 @@ async function loadWorkouts() {
 }
 
 async function saveWorkoutToServer(payload) {
-    // backend expects { id, user_id, title, exercises }
     const body = {
         id: payload.id || 0,
         user_id: payload.user_id,
@@ -152,7 +147,6 @@ async function saveWorkoutToServer(payload) {
         }))
     };
     const saved = await api('/api/save_workout', 'POST', body);
-    // normalize returned object
     if (!saved) return null;
     saved.title = saved.title || saved.name || '';
     saved.name = saved.name || saved.title || '';
@@ -175,7 +169,6 @@ function openCreate(editId = null) {
     stepExercises.classList.remove('active');
     exerciseForm.classList.remove('active');
 
-    // reset fields
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
@@ -184,15 +177,12 @@ function openCreate(editId = null) {
     updateSaveTrainingBtn();
 
     if (editId !== null && editId !== undefined) {
-        // find the workout and populate fields
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
         editingWorkoutId = Number(w.id);
         inputTrainingName.value = w.title || w.name || '';
         currentTempTitle = w.title || w.name || '';
-        // deep clone exercises to tempExercises
         tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
-        // ensure exercise objects have required fields
         tempExercises = tempExercises.map(e => ({
             name: e.name || e.Name || '',
             desc: e.desc ?? '',
@@ -214,7 +204,6 @@ function closeCreate() {
     overlay.style.pointerEvents = 'none';
     createModal.style.bottom = '-110%';
     createModal.setAttribute('aria-hidden', 'true');
-    // clear editing state
     editingWorkoutId = null;
 }
 
@@ -306,13 +295,16 @@ saveTrainingBtn.addEventListener('click', async () => {
 /* ====== Render workouts ====== */
 function renderWorkouts() {
     workoutContainer.innerHTML = '';
-    if (!workouts.length) { workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; return; }
+    if (!workouts.length) { 
+        workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; 
+        return; 
+    }
     workouts.forEach(w => {
         const title = w.title || w.name || 'Без названия';
         const div = document.createElement('div');
         div.className = 'workout-card';
-        div.onclick = () => openView(w.id);
         div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${(w.exercises || []).length} упражнений</div>`;
+        div.onclick = () => openView(w.id);
         workoutContainer.appendChild(div);
     });
 }
@@ -360,7 +352,7 @@ saveProfileBtn.addEventListener('click', async () => {
     alert('Настройки сохранены');
 });
 
-/* ====== View Modal with inline exercises ====== */
+/* ====== View Modal ====== */
 function renderViewExercises() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
@@ -385,16 +377,7 @@ function renderViewExercises() {
 }
 
 function editViewExercise(idx) {
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w) return;
-
-    // open create modal in edit mode
     openCreate(activeViewId);
-    stepTitle.classList.remove('active');
-    stepExercises.classList.add('active');
-
-    // ensure tempExercises is populated by openCreate
-    // set exercise form fields to the correct exercise and set edit index
     const ex = tempExercises[idx];
     if (!ex) return;
     exName.value = ex.name;
@@ -402,10 +385,7 @@ function editViewExercise(idx) {
     exReps.value = ex.reps;
     exMin.value = ex.min;
     exSec.value = ex.sec;
-    // set dataset to idx (the index inside tempExercises)
     saveExerciseBtn.dataset.editIndex = idx;
-
-    // close view modal (we already opened create)
     closeView();
 }
 
@@ -414,18 +394,14 @@ function deleteViewExercise(idx) {
     if (!w) return;
     if (!confirm('Удалить это упражнение?')) return;
 
-    // remove from local view
     w.exercises.splice(idx, 1);
 
-    // if currently editing this workout, sync tempExercises
     if (editingWorkoutId === Number(activeViewId)) {
         tempExercises = JSON.parse(JSON.stringify(w.exercises));
         renderExerciseCards();
         updateSaveTrainingBtn();
     }
 
-    // persist change: update workout on server by saving whole workout (quick approach)
-    // (Alternatively require explicit Save in edit modal — here we'll call save on server to persist immediate deletion)
     (async () => {
         try {
             await saveWorkoutToServer({ id: w.id, user_id: w.user_id, title: w.title, exercises: w.exercises });
@@ -455,7 +431,7 @@ function closeView() {
     activeViewId = null;
 }
 
-/* ====== Event listeners for modals ====== */
+/* ====== Modals event listeners ====== */
 openCreateModal.addEventListener('click', () => openCreate());
 closeCreateModal.addEventListener('click', closeCreate);
 overlay.addEventListener('click', () => {
@@ -468,7 +444,7 @@ backToTitleBtn.addEventListener('click', () => {
     stepExercises.classList.remove('active');
 });
 
-/* ====== Edit/Delete workout buttons in view modal ====== */
+/* ====== Edit/Delete workout buttons ====== */
 editWorkoutBtn.addEventListener('click', () => {
     if (activeViewId === null) return;
     closeView();
