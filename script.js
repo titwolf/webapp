@@ -158,50 +158,18 @@ async function deleteWorkoutFromServer(id) {
     return await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
 }
 
-/* ====== Modals ====== */
-function openCreate(editId = null) {
+/* ====== Creation modal (ONLY creation!) ====== */
+function openCreate() {
+    editingWorkoutId = null;
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
-    // Всегда показываем шаг названия по умолчанию
     stepTitle.classList.add('active');
     stepExercises.classList.remove('active');
     exerciseForm.classList.remove('active');
 
-    // --- Если это редактирование ---
-    if (editId !== null && editId !== undefined) {
-        const w = workouts.find(x => Number(x.id) === Number(editId));
-        if (!w) return;
-
-        editingWorkoutId = Number(w.id);
-
-        // Загружаем данные тренировки
-        inputTrainingName.value = w.title || w.name || '';
-        currentTempTitle = inputTrainingName.value;
-
-        tempExercises = (w.exercises || []).map(e => ({
-            name: e.name || e.Name || '',
-            desc: e.desc ?? '',
-            reps: e.reps ?? 0,
-            min: e.min ?? 0,
-            sec: e.sec ?? 0,
-            sets: e.sets ?? 1
-        }));
-
-        // Переход сразу на список упражнений
-        trainingTitleDisplay.textContent = currentTempTitle;
-        stepTitle.classList.remove('active');
-        stepExercises.classList.add('active');
-
-        renderExerciseCards();
-        updateSaveTrainingBtn();
-        return;
-    }
-
-    // --- Если это создание новой тренировки ---
-    editingWorkoutId = null;
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
@@ -210,14 +178,44 @@ function openCreate(editId = null) {
     updateSaveTrainingBtn();
 }
 
-
-
 function closeCreate() {
     overlay.style.opacity = '0';
     overlay.style.pointerEvents = 'none';
     createModal.style.bottom = '-110%';
     createModal.setAttribute('aria-hidden', 'true');
     editingWorkoutId = null;
+}
+
+/* ====== Edit modal (separate!) ====== */
+function openEditWorkout(id) {
+    const w = workouts.find(x => Number(x.id) === Number(id));
+    if (!w) return;
+
+    editingWorkoutId = Number(w.id);
+    currentTempTitle = w.title || w.name || '';
+    inputTrainingName.value = currentTempTitle;
+
+    tempExercises = (w.exercises || []).map(e => ({
+        name: e.name,
+        desc: e.desc ?? '',
+        reps: e.reps ?? 0,
+        min: e.min ?? 0,
+        sec: e.sec ?? 0,
+        sets: e.sets ?? 1
+    }));
+
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    createModal.style.bottom = '0';
+    createModal.setAttribute('aria-hidden', 'false');
+
+    // сразу шаг с упражнениями
+    trainingTitleDisplay.textContent = currentTempTitle;
+    stepTitle.classList.remove('active');
+    stepExercises.classList.add('active');
+
+    renderExerciseCards();
+    updateSaveTrainingBtn();
 }
 
 /* ====== Exercises ====== */
@@ -391,14 +389,12 @@ function renderViewExercises() {
 
 function editViewExercise(idx) {
     closeView();
-    openCreate(activeViewId);  // теперь modal открыта
+    openEditWorkout(activeViewId); // теперь открыта модалка редактирования
 
     const ex = tempExercises[idx];
     if (!ex) return;
 
-    // сразу открыть форму редактирования упражнения
     exerciseForm.classList.add('active');
-
     exName.value = ex.name;
     exDesc.value = ex.desc;
     exReps.value = ex.reps;
@@ -407,7 +403,6 @@ function editViewExercise(idx) {
 
     saveExerciseBtn.dataset.editIndex = idx;
 }
-
 
 function deleteViewExercise(idx) {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
@@ -452,7 +447,7 @@ function closeView() {
 }
 
 /* ====== Modals event listeners ====== */
-openCreateModal.addEventListener('click', () => openCreate());
+openCreateModal.addEventListener('click', openCreate);
 closeCreateModal.addEventListener('click', closeCreate);
 overlay.addEventListener('click', () => {
     if (viewModal.classList.contains('show')) closeView();
@@ -466,27 +461,24 @@ backToTitleBtn.addEventListener('click', () => {
 
 /* ====== Edit/Delete workout buttons ====== */
 editWorkoutBtn.addEventListener('click', () => {
-    if (activeViewId === null) return;
-    closeView();
-    openCreate(activeViewId);
+    if (activeViewId !== null) {
+        closeView();
+        openEditWorkout(activeViewId);
+    }
 });
-
 deleteWorkoutBtn.addEventListener('click', async () => {
-    if (activeViewId === null) return;
-    if (!confirm("Удалить эту тренировку?")) return;
-
+    if (!activeViewId) return;
+    if (!confirm('Удалить эту тренировку?')) return;
     try {
-        await deleteWorkoutFromServer(Number(activeViewId));
+        await deleteWorkoutFromServer(activeViewId);
         workouts = workouts.filter(w => Number(w.id) !== Number(activeViewId));
         renderWorkouts();
         closeView();
     } catch (err) {
-        console.error("Ошибка при удалении:", err);
-        alert("Ошибка при удалении тренировки. Посмотрите консоль.");
+        console.error("deleteWorkout error:", err);
+        alert("Ошибка при удалении");
     }
 });
 
-closeViewBtn.addEventListener('click', closeView);
-
 /* ====== Init ====== */
-window.addEventListener('DOMContentLoaded', loadWorkouts);
+loadWorkouts();
