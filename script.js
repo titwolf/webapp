@@ -191,26 +191,19 @@ function openEditWorkout(id) {
     const w = workouts.find(x => Number(x.id) === Number(id));
     if (!w) return;
 
-    editingWorkoutId = Number(w.id);
+    editingWorkoutId = w.id;
+    tempExercises = (w.exercises || []).map(e => ({ ...e }));
     currentTempTitle = w.title || w.name || '';
+
     inputTrainingName.value = currentTempTitle;
+    trainingTitleDisplay.textContent = currentTempTitle;
 
-    tempExercises = (w.exercises || []).map(e => ({
-        name: e.name,
-        desc: e.desc ?? '',
-        reps: e.reps ?? 0,
-        min: e.min ?? 0,
-        sec: e.sec ?? 0,
-        sets: e.sets ?? 1
-    }));
-
+    // Открываем модалку сразу на списке упражнений
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
-    // сразу шаг с упражнениями
-    trainingTitleDisplay.textContent = currentTempTitle;
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
@@ -310,12 +303,26 @@ function renderWorkouts() {
         workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; 
         return; 
     }
+
     workouts.forEach(w => {
         const title = w.title || w.name || 'Без названия';
         const div = document.createElement('div');
         div.className = 'workout-card';
-        div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${(w.exercises || []).length} упражнений</div>`;
-        div.onclick = () => openView(w.id);
+
+        div.innerHTML = `
+            <div class="workout-title">${title}</div>
+            <div class="workout-info">${(w.exercises || []).length} упражнений</div>
+            <div class="ex-actions" style="margin-top:6px; display:flex; gap:6px;">
+                <button class="icon-small" onclick="openEditWorkout(${w.id})">✎</button>
+                <button class="icon-small" onclick="deleteWorkoutFromCard(${w.id})">🗑</button>
+            </div>
+        `;
+
+        // Клик по остальной части карточки открывает просмотр
+        div.addEventListener('click', e => {
+            if (!e.target.closest('button')) openView(w.id);
+        });
+
         workoutContainer.appendChild(div);
     });
 }
