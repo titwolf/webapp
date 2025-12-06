@@ -165,38 +165,51 @@ function openCreate(editId = null) {
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
+    // Всегда показываем шаг названия по умолчанию
+    stepTitle.classList.add('active');
+    stepExercises.classList.remove('active');
     exerciseForm.classList.remove('active');
 
-    if (editId === null) {
-        // 🔹 Создание новой тренировки
-        stepTitle.classList.add('active');
-        stepExercises.classList.remove('active');
-
-        inputTrainingName.value = '';
-        currentTempTitle = '';
-        tempExercises = [];
-        editingWorkoutId = null;
-
-        trainingTitleDisplay.textContent = '';
-    } else {
-        // 🔹 Редактирование
+    // --- Если это редактирование ---
+    if (editId !== null && editId !== undefined) {
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
 
         editingWorkoutId = Number(w.id);
-        currentTempTitle = w.title || w.name || '';
-        inputTrainingName.value = currentTempTitle;
+
+        // Загружаем данные тренировки
+        inputTrainingName.value = w.title || w.name || '';
+        currentTempTitle = inputTrainingName.value;
+
+        tempExercises = (w.exercises || []).map(e => ({
+            name: e.name || e.Name || '',
+            desc: e.desc ?? '',
+            reps: e.reps ?? 0,
+            min: e.min ?? 0,
+            sec: e.sec ?? 0,
+            sets: e.sets ?? 1
+        }));
+
+        // Переход сразу на список упражнений
         trainingTitleDisplay.textContent = currentTempTitle;
-
-        tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
-
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
+
+        renderExerciseCards();
+        updateSaveTrainingBtn();
+        return;
     }
+
+    // --- Если это создание новой тренировки ---
+    editingWorkoutId = null;
+    inputTrainingName.value = '';
+    currentTempTitle = '';
+    tempExercises = [];
 
     renderExerciseCards();
     updateSaveTrainingBtn();
 }
+
 
 
 function closeCreate() {
