@@ -186,7 +186,7 @@ function closeCreate() {
     editingWorkoutId = null;
 }
 
-/* ====== Edit modal (separate!) ====== */
+/* ====== Edit modal (skip title step!) ====== */
 function openEditWorkout(id) {
     const w = workouts.find(x => Number(x.id) === Number(id));
     if (!w) return;
@@ -198,15 +198,16 @@ function openEditWorkout(id) {
     inputTrainingName.value = currentTempTitle;
     trainingTitleDisplay.textContent = currentTempTitle;
 
-    // Открываем модалку сразу на списке упражнений
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
+    // Сразу показываем шаг упражнений, пропускаем ввод названия
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
+    exerciseForm.classList.remove('active');
     renderExerciseCards();
     updateSaveTrainingBtn();
 }
@@ -313,18 +314,30 @@ function renderWorkouts() {
             <div class="workout-title">${title}</div>
             <div class="workout-info">${(w.exercises || []).length} упражнений</div>
             <div class="ex-actions" style="margin-top:6px; display:flex; gap:6px;">
-                <button class="icon-small" onclick="openEditWorkout(${w.id})">✎</button>
-                <button class="icon-small" onclick="deleteWorkoutFromCard(${w.id})">🗑</button>
+                <button class="icon-small" onclick="openEditWorkout(${w.id}); event.stopPropagation();">✎</button>
+                <button class="icon-small" onclick="deleteWorkoutFromCard(${w.id}); event.stopPropagation();">🗑</button>
             </div>
         `;
 
-        // Клик по остальной части карточки открывает просмотр
         div.addEventListener('click', e => {
             if (!e.target.closest('button')) openView(w.id);
         });
 
         workoutContainer.appendChild(div);
     });
+}
+
+/* ====== Delete workout from card ====== */
+async function deleteWorkoutFromCard(id) {
+    if (!confirm('Удалить тренировку?')) return;
+    try {
+        await deleteWorkoutFromServer(id);
+        workouts = workouts.filter(w => Number(w.id) !== Number(id));
+        renderWorkouts();
+    } catch (err) {
+        console.error("deleteWorkout error:", err);
+        alert("Ошибка при удалении тренировки");
+    }
 }
 
 /* ====== Exercise cards (in create modal) ====== */
@@ -396,7 +409,7 @@ function renderViewExercises() {
 
 function editViewExercise(idx) {
     closeView();
-    openEditWorkout(activeViewId); // теперь открыта модалка редактирования
+    openEditWorkout(activeViewId);
 
     const ex = tempExercises[idx];
     if (!ex) return;
