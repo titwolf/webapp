@@ -165,39 +165,39 @@ function openCreate(editId = null) {
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
-    stepTitle.classList.add('active');
-    stepExercises.classList.remove('active');
     exerciseForm.classList.remove('active');
 
-    inputTrainingName.value = '';
-    currentTempTitle = '';
-    tempExercises = [];
-    editingWorkoutId = null;
-    renderExerciseCards();
-    updateSaveTrainingBtn();
+    if (editId === null) {
+        // 🔹 Создание новой тренировки
+        stepTitle.classList.add('active');
+        stepExercises.classList.remove('active');
 
-    if (editId !== null && editId !== undefined) {
+        inputTrainingName.value = '';
+        currentTempTitle = '';
+        tempExercises = [];
+        editingWorkoutId = null;
+
+        trainingTitleDisplay.textContent = '';
+    } else {
+        // 🔹 Редактирование
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
+
         editingWorkoutId = Number(w.id);
-        inputTrainingName.value = w.title || w.name || '';
         currentTempTitle = w.title || w.name || '';
-        tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
-        tempExercises = tempExercises.map(e => ({
-            name: e.name || e.Name || '',
-            desc: e.desc ?? '',
-            reps: e.reps ?? 0,
-            min: e.min ?? 0,
-            sec: e.sec ?? 0,
-            sets: e.sets ?? 1
-        }));
+        inputTrainingName.value = currentTempTitle;
         trainingTitleDisplay.textContent = currentTempTitle;
+
+        tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
+
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
-        renderExerciseCards();
-        updateSaveTrainingBtn();
     }
+
+    renderExerciseCards();
+    updateSaveTrainingBtn();
 }
+
 
 function closeCreate() {
     overlay.style.opacity = '0';
@@ -377,17 +377,24 @@ function renderViewExercises() {
 }
 
 function editViewExercise(idx) {
-    openCreate(activeViewId);
+    closeView();
+    openCreate(activeViewId);  // теперь modal открыта
+
     const ex = tempExercises[idx];
     if (!ex) return;
+
+    // сразу открыть форму редактирования упражнения
+    exerciseForm.classList.add('active');
+
     exName.value = ex.name;
     exDesc.value = ex.desc;
     exReps.value = ex.reps;
     exMin.value = ex.min;
     exSec.value = ex.sec;
+
     saveExerciseBtn.dataset.editIndex = idx;
-    closeView();
 }
+
 
 function deleteViewExercise(idx) {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
