@@ -203,7 +203,7 @@ function openEditWorkout(id) {
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
-    // Сразу показываем шаг упражнений, пропускаем ввод названия
+    // Пропускаем ввод названия
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
@@ -297,7 +297,7 @@ saveTrainingBtn.addEventListener('click', async () => {
     }
 });
 
-/* ====== Render workouts ====== */
+/* ====== Render workouts (главная без кнопок) ====== */
 function renderWorkouts() {
     workoutContainer.innerHTML = '';
     if (!workouts.length) { 
@@ -310,34 +310,16 @@ function renderWorkouts() {
         const div = document.createElement('div');
         div.className = 'workout-card';
 
+        // На главной страницы кнопки не показываем
         div.innerHTML = `
             <div class="workout-title">${title}</div>
             <div class="workout-info">${(w.exercises || []).length} упражнений</div>
-            <div class="ex-actions" style="margin-top:6px; display:flex; gap:6px;">
-                <button class="icon-small" onclick="openEditWorkout(${w.id}); event.stopPropagation();">✎</button>
-                <button class="icon-small" onclick="deleteWorkoutFromCard(${w.id}); event.stopPropagation();">🗑</button>
-            </div>
         `;
 
-        div.addEventListener('click', e => {
-            if (!e.target.closest('button')) openView(w.id);
-        });
+        div.addEventListener('click', () => openView(w.id));
 
         workoutContainer.appendChild(div);
     });
-}
-
-/* ====== Delete workout from card ====== */
-async function deleteWorkoutFromCard(id) {
-    if (!confirm('Удалить тренировку?')) return;
-    try {
-        await deleteWorkoutFromServer(id);
-        workouts = workouts.filter(w => Number(w.id) !== Number(id));
-        renderWorkouts();
-    } catch (err) {
-        console.error("deleteWorkout error:", err);
-        alert("Ошибка при удалении тренировки");
-    }
 }
 
 /* ====== Exercise cards (in create modal) ====== */
@@ -479,7 +461,7 @@ backToTitleBtn.addEventListener('click', () => {
     stepExercises.classList.remove('active');
 });
 
-/* ====== Edit/Delete workout buttons ====== */
+/* ====== Edit/Delete workout buttons (внутри viewModal) ====== */
 editWorkoutBtn.addEventListener('click', () => {
     if (activeViewId !== null) {
         closeView();
