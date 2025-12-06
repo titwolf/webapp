@@ -186,7 +186,7 @@ function closeCreate() {
     editingWorkoutId = null;
 }
 
-/* ====== Edit modal (skip title step!) ====== */
+/* ====== Edit modal (separate!) ====== */
 function openEditWorkout(id) {
     const w = workouts.find(x => Number(x.id) === Number(id));
     if (!w) return;
@@ -198,16 +198,15 @@ function openEditWorkout(id) {
     inputTrainingName.value = currentTempTitle;
     trainingTitleDisplay.textContent = currentTempTitle;
 
+    // Открываем модалку сразу на списке упражнений
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     createModal.style.bottom = '0';
     createModal.setAttribute('aria-hidden', 'false');
 
-    // Пропускаем ввод названия
     stepTitle.classList.remove('active');
     stepExercises.classList.add('active');
 
-    exerciseForm.classList.remove('active');
     renderExerciseCards();
     updateSaveTrainingBtn();
 }
@@ -297,7 +296,7 @@ saveTrainingBtn.addEventListener('click', async () => {
     }
 });
 
-/* ====== Render workouts (главная без кнопок) ====== */
+/* ====== Render workouts ====== */
 function renderWorkouts() {
     workoutContainer.innerHTML = '';
     if (!workouts.length) { 
@@ -310,13 +309,19 @@ function renderWorkouts() {
         const div = document.createElement('div');
         div.className = 'workout-card';
 
-        // На главной страницы кнопки не показываем
         div.innerHTML = `
             <div class="workout-title">${title}</div>
             <div class="workout-info">${(w.exercises || []).length} упражнений</div>
+            <div class="ex-actions" style="margin-top:6px; display:flex; gap:6px;">
+                <button class="icon-small" onclick="openEditWorkout(${w.id})">✎</button>
+                <button class="icon-small" onclick="deleteWorkoutFromCard(${w.id})">🗑</button>
+            </div>
         `;
 
-        div.addEventListener('click', () => openView(w.id));
+        // Клик по остальной части карточки открывает просмотр
+        div.addEventListener('click', e => {
+            if (!e.target.closest('button')) openView(w.id);
+        });
 
         workoutContainer.appendChild(div);
     });
@@ -391,7 +396,7 @@ function renderViewExercises() {
 
 function editViewExercise(idx) {
     closeView();
-    openEditWorkout(activeViewId);
+    openEditWorkout(activeViewId); // теперь открыта модалка редактирования
 
     const ex = tempExercises[idx];
     if (!ex) return;
@@ -461,7 +466,7 @@ backToTitleBtn.addEventListener('click', () => {
     stepExercises.classList.remove('active');
 });
 
-/* ====== Edit/Delete workout buttons (внутри viewModal) ====== */
+/* ====== Edit/Delete workout buttons ====== */
 editWorkoutBtn.addEventListener('click', () => {
     if (activeViewId !== null) {
         closeView();
