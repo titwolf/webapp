@@ -103,10 +103,7 @@ async function getProfile() {
     completedCount.textContent = profile.completed_workouts || 0;
     notifyTime.value = profile.notify_time || '';
 
-    overlay.style.opacity = '1';
-    overlay.style.pointerEvents = 'auto';
-    profileModal.classList.add('show');
-    profileModal.setAttribute('aria-hidden', 'false');
+    showModal(profileModal);
 }
 
 async function saveProfileToServer(payload) {
@@ -158,12 +155,73 @@ async function deleteWorkoutFromServer(id) {
     return await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
 }
 
-/* ====== Modals ====== */
-function openCreate(editId = null) {
+/* ====== Helpers for modal/overlay handling ====== */
+function showOverlay() {
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
-    createModal.style.bottom = '0';
-    createModal.setAttribute('aria-hidden', 'false');
+}
+
+function hideOverlay() {
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+}
+
+/**
+ * Универсально показывает модал (передаём соответствующий корневой элемент),
+ * выставляет aria-hidden и overlay.
+ */
+function showModal(modalEl) {
+    // hide any other modals first to avoid stacking pointer-events problems
+    [createModal, viewModal, profileModal].forEach(m => {
+        if (m !== modalEl) {
+            m.classList.remove('show');
+            m.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    showOverlay();
+    modalEl.classList.add('show');
+    modalEl.setAttribute('aria-hidden', 'false');
+
+    // small safety: ensure inputs are enabled when modal opens
+    enableFormInputs();
+}
+
+/**
+ * Универсально скрывает модал (если нужно — можно передать specific modalEl)
+ */
+function hideModal(modalEl) {
+    if (modalEl) {
+        modalEl.classList.remove('show');
+        modalEl.setAttribute('aria-hidden', 'true');
+    } else {
+        [createModal, viewModal, profileModal].forEach(m => {
+            m.classList.remove('show');
+            m.setAttribute('aria-hidden', 'true');
+        });
+    }
+    // Скрываем overlay только если ни одна модалка не видна
+    const anyShown = [createModal, viewModal, profileModal].some(m => m.classList.contains('show'));
+    if (!anyShown) hideOverlay();
+
+    // safety: re-enable inputs
+    enableFormInputs();
+}
+
+/* ====== Enable/disable inputs safety ====== */
+function enableFormInputs() {
+    // гарантированно снимаем disabled с полей (вдруг где-то остался)
+    [inputTrainingName, exName, exDesc, exReps, exMin, exSec].forEach(el => {
+        if (!el) return;
+        el.removeAttribute('disabled');
+        el.style.pointerEvents = ''; // восстановим, если где-то был inline-styles
+    });
+}
+
+/* ====== Creation modal (ONLY creation!) ====== */
+function openCreate(editId = null) {
+    // create flow: always start from title step for creation
+    editingWorkoutId = null;
 
     stepTitle.classList.add('active');
     stepExercises.classList.remove('active');
@@ -172,10 +230,13 @@ function openCreate(editId = null) {
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
-    editingWorkoutId = null;
+
     renderExerciseCards();
     updateSaveTrainingBtn();
 
+    showModal(createModal);
+
+    // if editId provided, prefill (this path kept for backward compat)
     if (editId !== null && editId !== undefined) {
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
@@ -200,11 +261,30 @@ function openCreate(editId = null) {
 }
 
 function closeCreate() {
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-    createModal.style.bottom = '-110%';
-    createModal.setAttribute('aria-hidden', 'true');
+    hideModal(createModal);
     editingWorkoutId = null;
+}
+
+/* ====== Edit modal (skip title step!) ====== */
+function openEditWorkout(id) {
+    const w = workouts.find(x => Number(x.id) === Number(id));
+    if (!w) return;
+
+    editingWorkoutId = w.id;
+    tempExercises = (w.exercises || []).map(e => ({ ...e }));
+    currentTempTitle = w.title || w.name || '';
+
+    inputTrainingName.value = currentTempTitle;
+    trainingTitleDisplay.textContent = currentTempTitle;
+
+    stepTitle.classList.remove('active');
+    stepExercises.classList.add('active');
+    exerciseForm.classList.remove('active');
+
+    renderExerciseCards();
+    updateSaveTrainingBtn();
+
+    showModal(createModal); // same modal used, but starts at exercises step
 }
 
 /* ====== Exercises ====== */
@@ -295,9 +375,9 @@ saveTrainingBtn.addEventListener('click', async () => {
 /* ====== Render workouts ====== */
 function renderWorkouts() {
     workoutContainer.innerHTML = '';
-    if (!workouts.length) { 
-        workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; 
-        return; 
+    if (!workouts.length) {
+        workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>';
+        return;
     }
     workouts.forEach(w => {
         const title = w.title || w.name || 'Без названия';
@@ -342,10 +422,7 @@ function updateSaveTrainingBtn() {
 /* ====== Profile ====== */
 profileBtn.addEventListener('click', getProfile);
 closeProfileBtn.addEventListener('click', () => {
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-    profileModal.classList.remove('show');
-    profileModal.setAttribute('aria-hidden', 'true');
+    hideModal(profileModal);
 });
 saveProfileBtn.addEventListener('click', async () => {
     await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value });
@@ -377,16 +454,20 @@ function renderViewExercises() {
 }
 
 function editViewExercise(idx) {
-    openCreate(activeViewId);
+    // open edit (skip title) using the edit helper
+    openEditWorkout(activeViewId);
+
     const ex = tempExercises[idx];
     if (!ex) return;
+
+    exerciseForm.classList.add('active');
     exName.value = ex.name;
     exDesc.value = ex.desc;
     exReps.value = ex.reps;
     exMin.value = ex.min;
     exSec.value = ex.sec;
+
     saveExerciseBtn.dataset.editIndex = idx;
-    closeView();
 }
 
 function deleteViewExercise(idx) {
@@ -415,9 +496,7 @@ function deleteViewExercise(idx) {
 
 function openView(id) {
     activeViewId = Number(id);
-    overlay.style.opacity = '1';
-    overlay.style.pointerEvents = 'auto';
-    viewModal.classList.add('show');
+    showModal(viewModal);
 
     const w = workouts.find(x => Number(x.id) === Number(id));
     viewTitle.textContent = w?.title || w?.name || 'Без названия';
@@ -425,19 +504,18 @@ function openView(id) {
 }
 
 function closeView() {
-    viewModal.classList.remove('show');
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
     activeViewId = null;
+    hideModal(viewModal);
 }
 
 /* ====== Modals event listeners ====== */
 openCreateModal.addEventListener('click', () => openCreate());
 closeCreateModal.addEventListener('click', closeCreate);
 overlay.addEventListener('click', () => {
+    // clicking overlay closes the topmost visible modal
     if (viewModal.classList.contains('show')) closeView();
-    else if (profileModal.classList.contains('show')) closeProfileBtn.click();
-    else closeCreate();
+    else if (profileModal.classList.contains('show')) hideModal(profileModal);
+    else if (createModal.classList.contains('show')) closeCreate();
 });
 backToTitleBtn.addEventListener('click', () => {
     stepTitle.classList.add('active');
@@ -447,10 +525,9 @@ backToTitleBtn.addEventListener('click', () => {
 /* ====== Edit/Delete workout buttons ====== */
 editWorkoutBtn.addEventListener('click', () => {
     if (activeViewId === null) return;
-    closeView();
-    openCreate(activeViewId);
+    // close view and open edit (openEditWorkout uses same modal but starts at exercises)
+    openEditWorkout(activeViewId);
 });
-
 deleteWorkoutBtn.addEventListener('click', async () => {
     if (activeViewId === null) return;
     if (!confirm("Удалить эту тренировку?")) return;
