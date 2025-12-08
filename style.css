@@ -44,7 +44,9 @@ html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2))
 .bottom-modal .modal-inner{ display:flex; flex-direction:column; gap:12px; max-height:88vh; overflow:auto; padding-bottom:8px; }
 
 .bottom-modal.show {
-  bottom: 0;
+  bottom: 0 !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 /* steps */
