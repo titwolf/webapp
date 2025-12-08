@@ -220,6 +220,13 @@ function enableFormInputs() {
 
 /* ====== Creation modal (ONLY creation!) ====== */
 function openCreate(editId = null) {
+
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    setTimeout(() => {
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+    }, 0);
     // create flow: always start from title step for creation
     editingWorkoutId = null;
 
