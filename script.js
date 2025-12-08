@@ -234,17 +234,21 @@ function openCreate(editId = null) {
     renderExerciseCards();
     updateSaveTrainingBtn();
 
+    // показываем модалку
     showModal(createModal);
 
-    // восстановление фокуса на input
-    inputTrainingName.removeAttribute('disabled');
-    inputTrainingName.style.pointerEvents = '';
-    inputTrainingName.focus({ preventScroll: true });
+    // после того как модалка показалась, активируем input
+    requestAnimationFrame(() => {
+        inputTrainingName.removeAttribute('disabled');
+        inputTrainingName.style.pointerEvents = '';
+        inputTrainingName.focus({ preventScroll: true });
+    });
 
     // если editId передан, подставляем данные тренировки
     if (editId !== null && editId !== undefined) {
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
+
         editingWorkoutId = Number(w.id);
         inputTrainingName.value = w.title || w.name || '';
         currentTempTitle = w.title || w.name || '';
@@ -257,13 +261,22 @@ function openCreate(editId = null) {
             sec: e.sec ?? 0,
             sets: e.sets ?? 1
         }));
+
         trainingTitleDisplay.textContent = currentTempTitle;
         stepTitle.classList.remove('active');
         stepExercises.classList.add('active');
         renderExerciseCards();
         updateSaveTrainingBtn();
+
+        // снова ставим фокус после подстановки
+        requestAnimationFrame(() => {
+            inputTrainingName.removeAttribute('disabled');
+            inputTrainingName.style.pointerEvents = '';
+            inputTrainingName.focus({ preventScroll: true });
+        });
     }
 }
+
 
 function closeCreate() {
     hideModal(createModal);
@@ -400,23 +413,24 @@ function renderExerciseCards() {
     tempExercises.forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'exercise-card';
-        div.innerHTML = `<div class="ex-card-head">
-            <div class="ex-title">${ex.name}</div>
-            <div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
-        </div>
-        <div class="ex-actions">
-            <button class="icon-small" onclick="editExercise(${idx})">✎</button>
-            <button class="icon-small" onclick="deleteExercise(${idx})">🗑</button>
-        </div>`;
+        div.innerHTML = `
+            <div class="ex-card-head">
+                <div class="ex-title">${ex.name}</div>
+                <div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+            </div>
+            <div class="ex-actions">
+                <button class="icon-small" onclick="editExercise(${idx})">✎</button>
+                <button class="icon-small" onclick="deleteExercise(${idx})">🗑</button>
+            </div>
+        `;
         exerciseList.appendChild(div);
     });
 
-    // восстановление фокуса на input
-    if (createModal.classList.contains('show')) {
+    // восстанавливаем доступность и фокус на input
+    requestAnimationFrame(() => {
         inputTrainingName.removeAttribute('disabled');
         inputTrainingName.style.pointerEvents = '';
-        inputTrainingName.focus({ preventScroll: true });
-    }
+    });
 }
 
 function editExercise(idx) {
@@ -431,12 +445,11 @@ function deleteExercise(idx) {
     renderExerciseCards();
     updateSaveTrainingBtn();
 
-    // восстановление фокуса на input после удаления упражнения
-    if (createModal.classList.contains('show')) {
+    // обязательно восстанавливаем доступ к полям после удаления
+    requestAnimationFrame(() => {
         inputTrainingName.removeAttribute('disabled');
         inputTrainingName.style.pointerEvents = '';
-        inputTrainingName.focus({ preventScroll: true });
-    }
+    });
 }
 
 function updateSaveTrainingBtn() {
