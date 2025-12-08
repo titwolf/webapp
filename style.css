@@ -43,6 +43,10 @@ html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2))
 }
 .bottom-modal .modal-inner{ display:flex; flex-direction:column; gap:12px; max-height:88vh; overflow:auto; padding-bottom:8px; }
 
+.bottom-modal.show {
+  bottom: 0;
+}
+
 /* steps */
 .step{ display:none; } .step.active{ display:block; }
 .step h2{ font-size:20px; margin-bottom:8px; color:#fff; }
