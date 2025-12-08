@@ -220,14 +220,7 @@ function enableFormInputs() {
 
 /* ====== Creation modal (ONLY creation!) ====== */
 function openCreate(editId = null) {
-
-    overlay.style.opacity = '1';
-    overlay.style.pointerEvents = 'auto';
-    setTimeout(() => {
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-    }, 0);
-    // create flow: always start from title step for creation
+    // create flow: всегда начинаем с титульного шага
     editingWorkoutId = null;
 
     stepTitle.classList.add('active');
@@ -243,7 +236,12 @@ function openCreate(editId = null) {
 
     showModal(createModal);
 
-    // if editId provided, prefill (this path kept for backward compat)
+    // восстановление фокуса на input
+    inputTrainingName.removeAttribute('disabled');
+    inputTrainingName.style.pointerEvents = '';
+    inputTrainingName.focus({ preventScroll: true });
+
+    // если editId передан, подставляем данные тренировки
     if (editId !== null && editId !== undefined) {
         const w = workouts.find(x => Number(x.id) === Number(editId));
         if (!w) return;
@@ -402,10 +400,23 @@ function renderExerciseCards() {
     tempExercises.forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'exercise-card';
-        div.innerHTML = `<div class="ex-card-head"><div class="ex-title">${ex.name}</div><div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div></div>
-            <div class="ex-actions"><button class="icon-small" onclick="editExercise(${idx})">✎</button><button class="icon-small" onclick="deleteExercise(${idx})">🗑</button></div>`;
+        div.innerHTML = `<div class="ex-card-head">
+            <div class="ex-title">${ex.name}</div>
+            <div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+        </div>
+        <div class="ex-actions">
+            <button class="icon-small" onclick="editExercise(${idx})">✎</button>
+            <button class="icon-small" onclick="deleteExercise(${idx})">🗑</button>
+        </div>`;
         exerciseList.appendChild(div);
     });
+
+    // восстановление фокуса на input
+    if (createModal.classList.contains('show')) {
+        inputTrainingName.removeAttribute('disabled');
+        inputTrainingName.style.pointerEvents = '';
+        inputTrainingName.focus({ preventScroll: true });
+    }
 }
 
 function editExercise(idx) {
@@ -419,6 +430,13 @@ function deleteExercise(idx) {
     tempExercises.splice(idx, 1);
     renderExerciseCards();
     updateSaveTrainingBtn();
+
+    // восстановление фокуса на input после удаления упражнения
+    if (createModal.classList.contains('show')) {
+        inputTrainingName.removeAttribute('disabled');
+        inputTrainingName.style.pointerEvents = '';
+        inputTrainingName.focus({ preventScroll: true });
+    }
 }
 
 function updateSaveTrainingBtn() {
