@@ -182,42 +182,22 @@ function openCreate(editId = null) {
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
-    editingWorkoutId = null;
+    editingWorkoutId = null; // editingWorkoutId теперь используется только для сохранения
     renderExerciseCards();
     updateSaveTrainingBtn();
-
-    if (editId !== null) {
-        const w = workouts.find(x => Number(x.id) === Number(editId));
-        if (!w) return;
-        editingWorkoutId = Number(w.id);
-        inputTrainingName.value = w.title || w.name || '';
-        currentTempTitle = inputTrainingName.value;
-        tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
-        tempExercises = tempExercises.map(e => ({
-            name: e.name || e.Name || '',
-            desc: e.desc ?? '',
-            reps: e.reps ?? 0,
-            min: e.min ?? 0,
-            sec: e.sec ?? 0,
-            sets: e.sets ?? 1
-        }));
-        trainingTitleDisplay.textContent = currentTempTitle;
-        stepTitle.classList.remove('active');
-        stepExercises.classList.add('active');
-        renderExerciseCards();
-        updateSaveTrainingBtn();
-    }
+    
+    // --- УСТАРЕВШАЯ ЛОГИКА РЕДАКТИРОВАНИЯ УДАЛЕНА ---
 
     document.activeElement.blur(); 
 
-    // 2. (ОПЦИОНАЛЬНО) Вызываем метод Telegram WebApp, который скрывает клавиатуру.
-    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); // можно добавить для фидбека
-    window.Telegram?.WebApp?.disableVerticalScroll(true); // попробовать заблокировать прокрутку
+    // 2. (ОПЦИОНАЛЬНО) Вызываем метод Telegram WebApp, который скрывает клавиатуру.
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
+    window.Telegram?.WebApp?.disableVerticalScroll(true); 
 
-    setTimeout(() => {
-        inputTrainingName.focus();
-        // window.Telegram?.WebApp?.enableVerticalScroll(true); // вернуть прокрутку
-    }, 150);
+    setTimeout(() => {
+        inputTrainingName.focus();
+        window.Telegram?.WebApp?.enableVerticalScroll(true);
+    }, 150);
 }
 
 function closeCreate() {
@@ -227,7 +207,7 @@ function closeCreate() {
     editingWorkoutId = null;
 }
 
-/* ====== Exercises ====== */
+/* ====== Exercises (Create Modal) ====== */
 toggleExerciseFormBtn.addEventListener('click', () => {
     exerciseForm.classList.toggle('active');
     if (exerciseForm.classList.contains('active')) exName.focus();
@@ -322,7 +302,7 @@ function renderWorkouts() {
     });
 }
 
-/* ====== Exercise cards ====== */
+/* ====== Exercise cards (Create Modal) ====== */
 function renderExerciseCards() {
     exerciseList.innerHTML = '';
     tempExercises.forEach((ex, idx) => {
@@ -372,7 +352,7 @@ saveProfileBtn.addEventListener('click', async () => {
     alert('Настройки сохранены');
 });
 
-/* ====== View modal ====== */
+/* ====== View modal (Просмотр и Редактирование на месте) ====== */
 function renderViewExercises() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
@@ -411,45 +391,16 @@ function renderViewExercises() {
     });
 }
 
-function editViewExercise(idx) {
-    openCreate(activeViewId);
-    const ex = tempExercises[idx];
-    if (!ex) return;
-    exName.value = ex.name;
-    exDesc.value = ex.desc;
-    exReps.value = ex.reps;
-    exMin.value = ex.min;
-    exSec.value = ex.sec;
-    saveExerciseBtn.dataset.editIndex = idx;
-    closeView();
-}
+// --- УСТАРЕВШИЕ ФУНКЦИИ РЕДАКТИРОВАНИЯ VIEW-MODAL УДАЛЕНЫ ---
+// function editViewExercise(idx) {...}
+// function deleteViewExercise(idx) {...}
 
-function deleteViewExercise(idx) {
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w) return;
-    if (!confirm('Удалить это упражнение?')) return;
-
-    w.exercises.splice(idx, 1);
-
-    if (editingWorkoutId === Number(activeViewId)) {
-        tempExercises = JSON.parse(JSON.stringify(w.exercises));
-        renderExerciseCards();
-        updateSaveTrainingBtn();
-    }
-
-    (async () => {
-        try {
-            await saveWorkoutToServer({ id: w.id, user_id: w.user_id, title: w.title, exercises: w.exercises });
-        } catch (err) { console.error(err); }
-    })();
-
-    renderViewExercises();
-}
 
 function openView(id) {
     activeViewId = Number(id);
     showOverlay();
     viewModal.classList.add('show');
+    viewModal.classList.remove('edit-mode'); // Убедиться, что выходит из режима редактирования при открытии
     const w = workouts.find(x => Number(x.id) === Number(id));
     viewTitle.textContent = w?.title || w?.name || 'Без названия';
     renderViewExercises();
@@ -457,6 +408,7 @@ function openView(id) {
 
 function closeView() {
     viewModal.classList.remove('show');
+    viewModal.classList.remove('edit-mode'); // Сброс режима при закрытии
     hideOverlay();
     activeViewId = null;
 }
@@ -473,10 +425,10 @@ overlay.addEventListener('click', () => {
 editWorkoutBtn.addEventListener('click', () => { 
     if (activeViewId === null) return;
     
-    // Переключаем модалку просмотра в режим редактирования
+    // Переключаем модалку просмотра в режим редактирования (НОВАЯ ЛОГИКА)
     viewModal.classList.toggle('edit-mode'); 
     
-    // Перерисовываем упражнения, чтобы показать поля ввода и кнопки сохранения
+    // Перерисовываем, чтобы переключить отображение упражнений на поля ввода
     renderViewExercises(); 
 });
 deleteWorkoutBtn.addEventListener('click', async () => {
@@ -494,8 +446,6 @@ closeViewBtn.addEventListener('click', closeView);
 // ОТМЕНА РЕДАКТИРОВАНИЯ
 cancelViewEditBtn.addEventListener('click', () => {
     viewModal.classList.remove('edit-mode');
-    // Перерисовываем модалку, чтобы восстановить исходные данные, 
-    // если пользователь что-то менял в полях ввода, но не сохранил.
     renderViewExercises(); 
 });
 
@@ -556,8 +506,8 @@ saveViewChangesBtn.addEventListener('click', async () => {
 /* ====== Global helpers ====== */
 window.editExercise = editExercise;
 window.deleteExercise = deleteExercise;
-window.editViewExercise = editViewExercise;
-window.deleteViewExercise = deleteViewExercise;
+// window.editViewExercise = editViewExercise; // УДАЛЕНО
+// window.deleteViewExercise = deleteViewExercise; // УДАЛЕНО
 
 /* ====== Init ====== */
 window.addEventListener('DOMContentLoaded', loadWorkouts);
