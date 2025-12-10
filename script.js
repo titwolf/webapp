@@ -206,7 +206,9 @@ function openCreate(editId = null) {
         updateSaveTrainingBtn();
     }
 
-    requestAnimationFrame(() => inputTrainingName.focus());
+    setTimeout(() => {
+        inputTrainingName.focus();
+    }, 100);
 }
 
 function closeCreate() {
