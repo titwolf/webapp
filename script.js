@@ -206,9 +206,16 @@ function openCreate(editId = null) {
         updateSaveTrainingBtn();
     }
 
-    setTimeout(() => {
+    document.activeElement.blur(); 
+
+    // 2. (ОПЦИОНАЛЬНО) Вызываем метод Telegram WebApp, который скрывает клавиатуру.
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); // можно добавить для фидбека
+    window.Telegram?.WebApp?.disableVerticalScroll(true); // попробовать заблокировать прокрутку
+
+    setTimeout(() => {
         inputTrainingName.focus();
-    }, 100);
+        // window.Telegram?.WebApp?.enableVerticalScroll(true); // вернуть прокрутку
+    }, 150);
 }
 
 function closeCreate() {
