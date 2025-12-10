@@ -61,6 +61,8 @@ const closeViewBtn = document.getElementById('closeViewBtn');
 const editWorkoutBtn = document.getElementById('editWorkoutBtn');
 const startWorkoutBtn = document.getElementById('startWorkoutBtn');
 const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
+const saveViewChangesBtn = document.getElementById('saveViewChangesBtn');
+const cancelViewEditBtn = document.getElementById('cancelViewEditBtn');
 
 /* ====== Data ====== */
 let workouts = [];
@@ -375,22 +377,36 @@ function renderViewExercises() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
     viewBody.innerHTML = '';
+    
     (w.exercises || []).forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'view-ex';
-        div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                    <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
-                    ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
-                    <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+        
+        // 1. БЛОК ОТОБРАЖЕНИЯ (Режим просмотра)
+        const displayBlock = `
+            <div class="view-display">
+                <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                    <div>
+                        <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
+                        ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
+                        <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+                    </div>
                 </div>
-                <div style="display:flex;gap:6px;">
-                    <button class="icon-small" onclick="editViewExercise(${idx})">✎</button>
-                    <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
+            </div>`;
+        
+        // 2. ФОРМА РЕДАКТИРОВАНИЯ (Скрыта по умолчанию)
+        const editForm = `
+            <div class="view-edit-form" data-index="${idx}">
+                <input type="text" value="${ex.name}" placeholder="Название упражнения" data-field="name">
+                <input type="text" value="${ex.desc || ''}" placeholder="Описание" data-field="desc">
+                <input type="number" value="${ex.reps}" placeholder="Повторения *" min="1" data-field="reps">
+                <div class="time-row">
+                    <input type="number" value="${ex.min}" placeholder="Мин" min="0" data-field="min">
+                    <input type="number" value="${ex.sec}" placeholder="Сек" min="0" max="59" data-field="sec">
                 </div>
-            </div>
-        `;
+            </div>`;
+
+        div.innerHTML = displayBlock + editForm;
         viewBody.appendChild(div);
     });
 }
@@ -454,7 +470,15 @@ overlay.addEventListener('click', () => {
     else closeCreate();
 });
 
-editWorkoutBtn.addEventListener('click', () => { if (activeViewId !== null) { closeView(); openCreate(activeViewId); } });
+editWorkoutBtn.addEventListener('click', () => { 
+    if (activeViewId === null) return;
+    
+    // Переключаем модалку просмотра в режим редактирования
+    viewModal.classList.toggle('edit-mode'); 
+    
+    // Перерисовываем упражнения, чтобы показать поля ввода и кнопки сохранения
+    renderViewExercises(); 
+});
 deleteWorkoutBtn.addEventListener('click', async () => {
     if (activeViewId === null) return;
     if (!confirm("Удалить эту тренировку?")) return;
@@ -466,6 +490,68 @@ deleteWorkoutBtn.addEventListener('click', async () => {
     } catch (err) { console.error(err); alert("Ошибка при удалении тренировки."); }
 });
 closeViewBtn.addEventListener('click', closeView);
+
+// ОТМЕНА РЕДАКТИРОВАНИЯ
+cancelViewEditBtn.addEventListener('click', () => {
+    viewModal.classList.remove('edit-mode');
+    // Перерисовываем модалку, чтобы восстановить исходные данные, 
+    // если пользователь что-то менял в полях ввода, но не сохранил.
+    renderViewExercises(); 
+});
+
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ В МОДАЛКЕ ПРОСМОТРА
+saveViewChangesBtn.addEventListener('click', async () => {
+    if (activeViewId === null) return;
+
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
+    if (!w) return;
+
+    const newExercises = [];
+    const exerciseForms = viewBody.querySelectorAll('.view-edit-form');
+
+    // Собираем данные из всех полей ввода
+    for (const form of exerciseForms) {
+        const name = form.querySelector('[data-field="name"]').value.trim();
+        const desc = form.querySelector('[data-field="desc"]').value.trim();
+        const reps = parseInt(form.querySelector('[data-field="reps"]').value) || 0;
+        const min = parseInt(form.querySelector('[data-field="min"]').value) || 0;
+        const sec = parseInt(form.querySelector('[data-field="sec"]').value) || 0;
+
+        if (!name || reps <= 0) {
+            alert(`Название и количество повторений обязательны для упражнения`);
+            return;
+        }
+
+        newExercises.push({ name, desc, reps, min, sec, sets: 1 });
+    }
+
+    w.exercises = newExercises; // Обновляем локальную копию
+    
+    try {
+        // Отправляем на сервер обновленную тренировку
+        const savedWorkout = await saveWorkoutToServer({ 
+            id: w.id, 
+            user_id: w.user_id, 
+            title: w.title, 
+            exercises: w.exercises 
+        });
+        
+        // Обновляем список тренировок
+        const index = workouts.findIndex(x => Number(x.id) === Number(activeViewId));
+        if (index > -1) workouts[index] = savedWorkout;
+
+        // Выход из режима редактирования
+        viewModal.classList.remove('edit-mode');
+        renderViewExercises();
+        renderWorkouts(); // Обновляем главный экран
+        
+        alert("Изменения сохранены!");
+
+    } catch (err) {
+        console.error("Ошибка при сохранении редактирования:", err);
+        alert("Ошибка при сохранении. Посмотрите консоль.");
+    }
+});
 
 /* ====== Global helpers ====== */
 window.editExercise = editExercise;

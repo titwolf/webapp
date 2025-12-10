@@ -103,6 +103,37 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 .view-body{ display:flex; flex-direction:column; gap:10px; } 
 .view-ex{ background: rgba(255,255,255,0.04); padding:10px; border-radius:10px; }
 
+/* Упражнение в режиме просмотра */
+.view-ex .view-display { display: flex; }
+.view-ex .view-edit-form { display: none; }
+
+/* Когда модалка в режиме редактирования: */
+.view-modal.edit-mode .view-display {
+    /* Скрываем отображаемый текст */
+    display: none; 
+}
+
+.view-modal.edit-mode .view-edit-form {
+    /* Показываем форму редактирования */
+    display: block; 
+}
+
+/* Скрываем действия (Редактировать/Начать/Удалить) в режиме редактирования */
+.view-modal.edit-mode .view-actions {
+    display: none; 
+}
+
+/* Показываем контролы редактирования (Например, кнопку Сохранить) */
+.view-modal .view-edit-controls {
+    display: none;
+}
+
+.view-modal.edit-mode .view-edit-controls {
+    display: flex; /* Покажем элементы управления для сохранения/отмены */
+    gap: 10px;
+    margin-top: 20px;
+}
+
 /* responsive */
 @media (max-width:520px){
   .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
