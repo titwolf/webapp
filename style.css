@@ -39,7 +39,7 @@ html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2))
 /* bottom modal */
 .bottom-modal{
   position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
-  backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:90; transition: bottom .38s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
+  backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:130; transition: bottom .38s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
 }
 .bottom-modal .modal-inner{ display:flex; flex-direction:column; gap:12px; max-height:88vh; overflow:auto; padding-bottom:8px; }
 
@@ -87,10 +87,14 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 .btn.primary.disabled, .btn.primary[disabled]{ opacity:.45; pointer-events:none; }
 
 /* view modal */
-.view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:120; pointer-events:none; }
+.view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:110; pointer-events:none; }
 .view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:18px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
 .view-modal.show{ pointer-events:auto; } 
 .view-modal.show .view-inner{ transform:translateY(0); opacity:1; }
+.view-modal:not(.show) {
+    pointer-events: none;
+    visibility: hidden; /* Добавляем, чтобы гарантировать скрытие */
+}
 .view-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; } 
 .view-actions{ display:flex; gap:8px; } 
 .icon-btn{ background:rgba(255,255,255,0.04); color:#fff; padding:8px 10px; border-radius:10px; border:none; cursor:pointer; }
