@@ -102,7 +102,10 @@ flex: 1; /* Возвращаем flex: 1 для исходного дизайн�
 
 /* view modal */
 .view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:120; /* Вернули z-index из первого блока */ pointer-events:none; }
-.view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:18px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:14px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.view-header h3 {
+    margin: 0; /* Удаляем браузерные отступы у заголовка H3 */
+}
 .view-modal.show{ pointer-events:auto; }
 .view-modal.show .view-inner{ transform:translateY(0); opacity:1; }
 
