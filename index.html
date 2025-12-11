@@ -1,134 +1,133 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FitPlan — Тренировки</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FitPlan — Тренировки</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="top-bar" id="topBar">
-    <div class="left-group">
-      <div class="profile-btn" id="profileBtn">
-        <img id="userAvatar" src="https://via.placeholder.com/80" alt="avatar">
-      </div>
-    </div>
-    <button class="add-btn" id="openCreateModal">+</button>
-  </div>
+  <div class="top-bar" id="topBar">
+    <div class="left-group">
+      <div class="profile-btn" id="profileBtn">
+        <img id="userAvatar" src="https://via.placeholder.com/80" alt="avatar">
+    </div>
+    </div>
+    <button class="add-btn" id="openCreateModal">+</button>
+  </div>
 
-  <main class="content-wrap">
-    <div class="content" id="workoutContainer">
-      <p class="empty-text">Список тренировок пуст.</p>
-    </div>
-  </main>
+  <main class="content-wrap">
+    <div class="content" id="workoutContainer">
+      <p class="empty-text">Список тренировок пуст.</p>
+    </div>
+  </main>
 
-  <div class="overlay" id="overlay"></div>
+  <div class="overlay" id="overlay"></div>
 
-  <section class="bottom-modal" id="createModal" aria-hidden="true">
-    <div class="modal-inner">
-      <div class="step step-title active" id="stepTitle">
-        <h2>Название тренировки</h2>
-        <input id="inputTrainingName" type="text" placeholder="Введите название тренировки">
-        <div class="row">
-          <button class="btn primary" id="toExercisesBtn">Далее</button>
-          <button class="btn ghost" id="closeCreateModal">Отмена</button>
-        </div>
-      </div>
+  <section class="bottom-modal" id="createModal" aria-hidden="true">
+    <div class="modal-inner">
+      <div class="step step-title active" id="stepTitle">
+        <h2>Название тренировки</h2>
+        <input id="inputTrainingName" type="text" placeholder="Введите название тренировки">
+        <div class="row">
+          <button class="btn primary" id="toExercisesBtn">Далее</button>
+          <button class="btn ghost" id="closeCreateModal">Отмена</button>
+        </div>
+      </div>
 
-      <div class="step step-exercises" id="stepExercises" aria-hidden="true">
-        <div class="header-row">
-          <h2 id="trainingTitleDisplay">Название</h2>
-          <button class="btn ghost" id="backToTitleBtn">← Назад</button>
-        </div>
+      <div class="step step-exercises" id="stepExercises" aria-hidden="true">
+        <div class="header-row">
+          <h2 id="trainingTitleDisplay">Название</h2>
+          <button class="btn ghost" id="backToTitleBtn">← Назад</button>
+        </div>
 
-        <div class="controls-row">
-          <button class="btn add-ex" id="toggleExerciseFormBtn">+ Добавить упражнение</button>
-        </div>
+        <div class="controls-row">
+          <button class="btn add-ex" id="toggleExerciseFormBtn">+ Добавить упражнение</button>
+        </div>
 
-        <div class="exercise-form" id="exerciseForm" aria-hidden="true">
-          <input id="exName" type="text" placeholder="Название упражнения *">
-          <input id="exDesc" type="text" placeholder="Описание (необязательно)">
-          <input id="exReps" type="number" placeholder="Повторения *" min="1">
-          <div class="time-row">
-            <input id="exMin" type="number" placeholder="Мин" min="0">
-            <input id="exSec" type="number" placeholder="Сек" min="0" max="59">
-          </div>
-          <div class="row">
-            <button class="btn primary" id="saveExerciseBtn">Сохранить упражнение</button>
-            <button class="btn ghost" id="cancelExerciseBtn">Отмена</button>
-          </div>
-        </div>
+        <div class="exercise-form" id="exerciseForm" aria-hidden="true">
+          <input id="exName" type="text" placeholder="Название упражнения *">
+          <input id="exDesc" type="text" placeholder="Описание (необязательно)">
+          <input id="exReps" type="number" placeholder="Повторения *" min="1">
+          <div class="time-row">
+            <input id="exMin" type="number" placeholder="Мин" min="0">
+            <input id="exSec" type="number" placeholder="Сек" min="0" max="59">
+          </div>
+          <div class="row">
+            <button class="btn primary" id="saveExerciseBtn">Сохранить упражнение</button>
+            <button class="btn ghost" id="cancelExerciseBtn">Отмена</button>
+        </div>
+        </div>
 
-        <div class="exercise-list" id="exerciseList"></div>
+        <div class="exercise-list" id="exerciseList"></div>
 
-        <div class="row end">
-          <button class="btn primary disabled" id="saveTrainingBtn" disabled>Сохранить тренировку</button>
-        </div>
-      </div>
-    </div>
-  </section>
+        <div class="row end">
+          <button class="btn primary disabled" id="saveTrainingBtn" disabled>Сохранить тренировку</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <div class="view-modal" id="viewModal" aria-hidden="true">
-    <div class="view-inner">
-      <div class="view-header">
-        <div class="modal-title-container"> 
-          <div id="viewTitleDisplayContainer" style="display: flex; align-items: center; gap: 8px;">
-            <h3 id="viewTitleDisplay">Тренировка</h3>
-            <button id="viewTitleEditBtn" class="icon-small">✎</button> 
-          </div>
+  <div class="view-modal" id="viewModal" aria-hidden="true">
+    <div class="view-inner">
+      <div class="view-header">
+        <div class="modal-title-container"> 
+          
+                    <div id="viewTitleDisplayContainer" class="view-title-display">
+            <h3 id="viewTitleDisplay">Тренировка</h3>
+            <button id="viewTitleEditBtn" class="icon-small" style="display:none;">✎</button> 
+          </div>
 
-          <div id="viewTitleEditForm" style="display: none; align-items: center; gap: 8px; width: 100%;">
-            <input type="text" id="viewTitleInput" style="flex-grow: 1; padding: 5px; border-radius: 4px; border: 1px solid var(--color-primary-dark);">
-            <button id="viewTitleSaveBtn" class="icon-small" style="color: #6ee7b7; font-size: 1.2em;">✔</button>
-            <button id="viewTitleCancelBtn" class="icon-small" style="color: #fca5a5; font-size: 1.2em;">✕</button>
-          </div>
-        </div>
-        
-        <div class="view-actions">
-          <div id="mainViewActions" style="display:flex; gap:6px;">
-            <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
-            <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
-            <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
-          </div>
+                    <div id="viewTitleEditForm" class="edit-title-form" style="display:none;">
+            <input type="text" id="viewTitleInput" placeholder="Название тренировки">
+            <button id="viewTitleSaveBtn" class="icon-small primary-icon">✔</button>
+            <button id="viewTitleCancelBtn" class="icon-small">✖</button>
+          </div>
+        </div>
+        
+        <div class="view-actions">
+                    <div id="mainViewActions" style="display:flex; gap:6px;">
+            <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
+            <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
+            <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
+          </div>
 
-          <div id="editModeActions" style="display:none; gap:6px;">
-            <button class="icon-btn" id="addExerciseToViewBtn" title="Добавить упражнение">+</button>
-            <button class="icon-btn" id="saveViewChangesBtn" title="Сохранить изменения">✔</button>
-            <button class="icon-btn" id="cancelViewEditBtn" title="Отмена">✕</button>
-            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button> 
-          </div>
-          
-          <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
-        </div>
-      </div>
+                    <div id="editModeActions" style="display:none; gap:6px;">
+                        <button class="icon-btn" id="saveViewChangesBtn" title="Сохранить изменения" style="display:none;">✔</button> 
+            <button class="icon-btn" id="cancelViewEditBtn" title="Отмена">←</button>
+            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">✕</button> 
+          </div>
+          
+          <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+        </div>
+      </div>
 
-      <div class="view-body" id="viewBody"></div>
+      <div class="view-body" id="viewBody"></div>
 
-    </div>
-  </div>
+    </div>
+  </div>
+  <div class="view-modal" id="profileModal" aria-hidden="true">
+    <div class="view-inner">
+      <div class="view-header">
+        <h3>Профиль</h3>
+        <button class="icon-btn" id="closeProfileBtn">✕</button>
+      </div>
+      <div class="view-body" id="profileBody">
+        <div style="text-align:center;">
+          <img id="profileAvatar" src="https://via.placeholder.com/120" style="border-radius:50%; width:120px; height:120px;">
+          <h3 id="profileName"></h3>
+          <p>Создано тренировок: <span id="createdCount">0</span></p>
+          <p>Завершено тренировок: <span id="completedCount">0</span></p>
+          <label>Уведомления:
+            <input type="time" id="notifyTime">
+          </label>
+          <button class="btn primary" id="saveProfileBtn">Сохранить настройки</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <div class="view-modal" id="profileModal" aria-hidden="true">
-    <div class="view-inner">
-      <div class="view-header">
-        <h3>Профиль</h3>
-        <button class="icon-btn" id="closeProfileBtn">✕</button>
-      </div>
-      <div class="view-body" id="profileBody">
-        <div style="text-align:center;">
-          <img id="profileAvatar" src="https://via.placeholder.com/120" style="border-radius:50%; width:120px; height:120px;">
-          <h3 id="profileName"></h3>
-          <p>Создано тренировок: <span id="createdCount">0</span></p>
-          <p>Завершено тренировок: <span id="completedCount">0</span></p>
-          <label>Уведомления:
-            <input type="time" id="notifyTime">
-          </label>
-          <button class="btn primary" id="saveProfileBtn">Сохранить настройки</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
