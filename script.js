@@ -498,8 +498,8 @@ async function saveWorkoutChanges(workout) {
         exercises: workout.exercises.map(e => ({
             id: e.id || 0, 
             name: e.name,
-            // ИСПРАВЛЕНО: desc вместо description
-            desc: e.desc || null, 
+            // ИСПРАВЛЕНО: Используем 'desc', если есть, иначе - 'description'. Это делает код более надежным.
+            desc: e.desc || e.description || null, 
             reps: e.reps,
             sets: e.sets || 1,
             min: e.min || 0,
@@ -966,49 +966,48 @@ if (cancelNewViewExerciseBtn) {
 
 // Handler для кнопки "Сохранить" в форме добавления упражнения
 if (saveNewViewExerciseBtn) {
-    saveNewViewExerciseBtn.addEventListener('click', async () => {
-        if (!viewExName || !viewExReps) return;
+    saveNewViewExerciseBtn.addEventListener('click', async () => {
+        if (!viewExName || !viewExReps) return;
 
-        const name = viewExName.value.trim();
-        // ⭐ ИСПРАВЛЕНИЕ: Добавлена переменная desc, читаем из viewExDesc
-        const desc = viewExDesc?.value.trim() || "";
-        const reps = parseInt(viewExReps.value);
-        const min = parseInt(viewExMin?.value || 0);
-        const sec = parseInt(viewExSec?.value || 0);
+        const name = viewExName.value.trim();
+        const desc = viewExDesc?.value.trim() || ""; // Используем 'desc'
+        const reps = parseInt(viewExReps.value);
+        const min = parseInt(viewExMin?.value || 0);
+        const sec = parseInt(viewExSec?.value || 0);
 
-        if (!name || isNaN(reps) || reps < 1) {
-            alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
-            return;
-        }
+        if (!name || isNaN(reps) || reps < 1) {
+            alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
+            return;
+        }
 
-        const newExercise = {
-            // ⭐ ИСПРАВЛЕНИЕ: Используем локально определенные переменные (name, desc, reps, min, sec)
-            name: name,
-            desc: desc, // ИСПРАВЛЕНО: desc
-            reps: reps,
-            sets: 1, // ИСПРАВЛЕНО: sets
-            min: min,
-            sec: sec,
-            id: Date.now() 
-        };
-        
-        let w = workouts.find(x => Number(x.id) === Number(activeViewId));
-        if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
-        
-        if (!w.exercises) w.exercises = [];
-        w.exercises.push(newExercise);
-        
-        const saved = await saveWorkoutChanges(w);
-        
-        if (saved) {
-            // Сброс состояния после сохранения
-            isAddingNewExerciseInView = false;
-            if (viewExerciseForm) viewExerciseForm.style.display = 'none';
-            
-            // Обновляем отображение списка
-            renderViewExercises(); 
-        }
-    });
+        const newExercise = {
+            name: name,
+            // ⭐ ИСПРАВЛЕНИЕ: Используем 'desc' вместо 'description'
+            desc: desc, 
+            reps: reps,
+            sets: 1, 
+            min: min,
+            sec: sec,
+            id: Date.now() 
+        };
+        
+        let w = workouts.find(x => Number(x.id) === Number(activeViewId));
+        if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
+        
+        if (!w.exercises) w.exercises = [];
+        w.exercises.push(newExercise);
+        
+        const saved = await saveWorkoutChanges(w);
+        
+        if (saved) {
+            // Сброс состояния после сохранения
+            isAddingNewExerciseInView = false;
+            if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+            
+            // Обновляем отображение списка
+            renderViewExercises(); 
+        }
+    });
 }
 
 
