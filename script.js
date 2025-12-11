@@ -960,12 +960,13 @@ if (saveNewViewExerciseBtn) {
         }
 
         const newExercise = {
-            name: name,
-            description: viewExDesc?.value.trim() || "",
-            reps: reps,
-            min: min,
-            sec: sec,
-            sets: 1,
+            name: inputExName.value.trim(),
+            // ИЗМЕНЕНИЕ: Используем 'desc' вместо 'description'
+            desc: inputExDesc.value.trim(), 
+            reps: Number(inputExReps.value),
+            sets: Number(inputExSets.value) || 1,
+            min: Number(inputExMin.value) || 0,
+            sec: Number(inputExSec.value) || 0,
             id: Date.now() 
         };
         
