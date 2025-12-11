@@ -135,80 +135,62 @@ async function registerUser() {
 async function getProfile() {
     const profile = await api(`/api/get_profile?user_id=${tgUser.id}`);
     if (profileAvatar) profileAvatar.src = profile.avatar_url || tgUser.photo_url;
-    if (profileName) profileName.textContent = profile.username ? `@${profile.username}` : (tgUser.first_name || "Неизвестный");
-    if (createdCount) createdCount.textContent = profile.total_workouts;
-    if (completedCount) completedCount.textContent = profile.completed_workouts;
-    if (notifyTime) notifyTime.value = profile.notify_time || "08:00";
+    if (profileName) profileName.textContent = profile.username ? `@${profile.username}` : (tgUser.first_name || "");
+    if (createdCount) createdCount.textContent = profile.total_workouts || 0;
+    if (completedCount) completedCount.textContent = profile.completed_workouts || 0;
+    if (notifyTime) notifyTime.value = profile.notify_time || '';
+
+    if (overlay && profileModal) {
+        overlay.classList.add('show'); 
+        profileModal.classList.add('show');
+        profileModal.setAttribute('aria-hidden', 'false');
+    }
 }
 
-async function saveProfile() {
-    const time = notifyTime?.value || "08:00";
-    const payload = {
-        Id: tgUser.id,
-        Username: profileName?.textContent?.replace('@', '') || tgUser.username || tgUser.first_name || "",
-        AvatarUrl: tgUser.photo_url || "",
-        NotifyTime: time
-    };
+async function saveProfileToServer(payload) {
     await api('/api/save_profile', 'POST', payload);
 }
 
-/* ====== Workout API ====== */
-async function fetchWorkouts() {
-    if (!tgUser.id) return;
+/* ====== Workouts API ====== */
+async function loadWorkouts() {
     try {
-        workouts = await api(`/api/get_workouts?user_id=${tgUser.id}`);
-    } catch (e) {
-        console.error('Ошибка загрузки тренировок:', e);
-        workouts = [];
+        await registerUser();
+        const res = await api(`/api/get_workouts?user_id=${tgUser.id}`);
+        workouts = res || [];
+        workouts = workouts.map(w => ({
+            id: w.id,
+            title: w.title || w.name || '',
+            name: w.name || w.title || '',
+            user_id: w.user_id,
+            exercises: w.exercises || []
+        }));
+        renderWorkouts();
+    } catch (err) {
+        console.error("loadWorkouts error:", err);
     }
 }
 
-/**
- * Отправляет или обновляет тренировку на сервер.
- * @param {object} payload - Объект WorkoutDto
- */
-async function saveWorkout(payload) {
-    try {
-        const saved = await api('/api/save_workout', 'POST', payload);
-        if (!saved) return null;
-        
-        // Обновляем локальный список после сохранения
-        await fetchWorkouts(); 
-        return saved;
-    } catch (error) {
-        console.error('Ошибка сохранения тренировки:', error);
-        alert(`Ошибка сохранения: ${error.message}`);
-        return null;
-    }
-}
-
-/**
- * Сохраняет изменения существующей тренировки в режиме просмотра.
- * Формирует payload из текущего состояния объекта в памяти.
- * @param {object} workout - Объект тренировки из массива workouts
- * @returns {Promise<boolean>}
- */
-async function saveWorkoutChanges(workout) {
-    const payload = {
-        id: workout.id,
-        user_id: workout.user_id,
-        title: workout.title || workout.name,
-        exercises: workout.exercises.map(e => ({
-            id: e.id || 0, // Id может быть 0, если упражнение новое
+async function saveWorkoutToServer(payload) {
+    const body = {
+        id: payload.id || 0,
+        user_id: payload.user_id,
+        title: payload.title,
+        exercises: payload.exercises.map(e => ({
             name: e.name,
-            // ⭐ ИСПРАВЛЕНО: Использование 'desc' вместо 'description'
-            desc: e.desc || null, 
             reps: e.reps,
-            sets: e.sets || 1,
-            min: e.min || 0,
-            sec: e.sec || 0
+            sets: e.sets ?? 1,
+            min: e.min ?? 0,
+            sec: e.sec ?? 0,
+            desc: e.desc ?? ""
         }))
     };
-
-    const saved = await saveWorkout(payload);
-    return !!saved;
+    const saved = await api('/api/save_workout', 'POST', body);
+    if (!saved) return null;
+    saved.title = saved.title || saved.name || '';
+    saved.name = saved.name || saved.title || '';
+    saved.exercises = saved.exercises || [];
+    return saved;
 }
-
 
 async function deleteWorkoutFromServer(id) {
     return await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
@@ -216,11 +198,10 @@ async function deleteWorkoutFromServer(id) {
 
 /* ====== Overlay & Create Modal ====== */
 function showOverlay() {
-    if(overlay) overlay.classList.add('show');
+    if(overlay) overlay.classList.add('show'); 
 }
-
 function hideOverlay() {
-    if(overlay) overlay.classList.remove('show');
+    if(overlay) overlay.classList.remove('show'); 
 }
 
 /**
@@ -229,186 +210,221 @@ function hideOverlay() {
  * @param {boolean} skipTitleStep Пропустить ли шаг ввода названия.
  */
 function openCreate(editId = null, skipTitleStep = false) {
-    editingWorkoutId = editId;
-    tempExercises = [];
-    currentTempTitle = '';
+    // Закрываем модалки, если открыты
+    if (viewModal && viewModal.classList.contains('show')) closeView(false); 
+    if (profileModal && profileModal.classList.contains('show')) closeProfileModal(false); 
 
-    if (editId) {
-        const workout = workouts.find(w => w.id === editId);
-        if (workout) {
-            currentTempTitle = workout.title || workout.name;
-            tempExercises = workout.exercises.map(ex => ({
-                name: ex.name,
-                // ⭐ ИСПРАВЛЕНО: Использование 'desc'
-                desc: ex.desc, 
-                reps: ex.reps,
-                min: ex.min,
-                sec: ex.sec,
-                sets: ex.sets || 1
-            }));
-        }
+    showOverlay();
+    if (createModal) {
+        createModal.classList.add('show'); 
+        createModal.setAttribute('aria-hidden', 'false');
     }
+
+
+    if (exerciseForm) exerciseForm.classList.remove('active'); // Сбрасываем форму, чтобы начать чисто
+
+    if (inputTrainingName) inputTrainingName.value = '';
+    currentTempTitle = '';
+    tempExercises = [];
+    editingWorkoutId = null; 
     
-    if (inputTrainingName) inputTrainingName.value = currentTempTitle;
-    
-    if (skipTitleStep || editId) {
-        if (stepTitle) stepTitle.classList.remove('active');
-        if (stepExercises) stepExercises.classList.add('active');
+    let initialFocus = inputTrainingName;
+
+    if (editId !== null) {
+        const w = workouts.find(x => Number(x.id) === Number(editId));
+        if (w) {
+            editingWorkoutId = Number(w.id);
+            currentTempTitle = w.title || w.name || '';
+            if (inputTrainingName) inputTrainingName.value = currentTempTitle;
+
+            tempExercises = JSON.parse(JSON.stringify(w.exercises || []));
+            tempExercises = tempExercises.map(e => ({
+                name: e.name || e.Name || '',
+                desc: e.desc ?? '',
+                reps: e.reps ?? 0,
+                min: e.min ?? 0,
+                sec: e.sec ?? 0,
+                sets: e.sets ?? 1
+            }));
+
+            if (skipTitleStep) { 
+                if (trainingTitleDisplay) trainingTitleDisplay.textContent = currentTempTitle;
+                if (stepTitle) stepTitle.classList.remove('active');
+                if (stepExercises) stepExercises.classList.add('active');
+                if (exerciseForm) exerciseForm.classList.add('active'); 
+                initialFocus = exName;
+            } else {
+                if (stepTitle) stepTitle.classList.add('active');
+                if (stepExercises) stepExercises.classList.remove('active');
+            }
+        }
     } else {
         if (stepTitle) stepTitle.classList.add('active');
         if (stepExercises) stepExercises.classList.remove('active');
     }
 
-    renderExerciseForm(false);
-    renderExerciseList();
-    
-    // Сброс полей формы добавления упражнения
-    if(exName) exName.value = '';
-    if(exDesc) exDesc.value = '';
-    if(exReps) exReps.value = '';
-    if(exMin) exMin.value = '';
-    if(exSec) exSec.value = '';
+    renderExerciseCards();
+    updateSaveTrainingBtn();
 
-    if (saveTrainingBtn) saveTrainingBtn.textContent = editId ? 'Сохранить изменения' : 'Сохранить тренировку';
-    
-    openModal(createModal);
+    document.activeElement.blur(); 
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
+    window.Telegram?.WebApp?.disableVerticalScroll(true); 
+
+    setTimeout(() => {
+        if (initialFocus) initialFocus.focus();
+        window.Telegram?.WebApp?.enableVerticalScroll(true);
+    }, 150);
 }
 
 function closeCreate() {
-    closeModal(createModal);
+    hideOverlay();
+    if (createModal) {
+        createModal.classList.remove('show'); 
+        createModal.setAttribute('aria-hidden', 'true');
+    }
     editingWorkoutId = null;
 }
 
-/* ====== Universal Modal functions ====== */
-function openModal(modal) {
-    modal.classList.add('show');
-    showOverlay();
-    document.body.style.overflow = 'hidden';
-}
-
-function closeModal(modal) {
-    modal.classList.remove('show');
-    // Проверяем, если не осталось открытых модалок
-    if (!createModal?.classList.contains('show') && !viewModal?.classList.contains('show') && !profileModal?.classList.contains('show')) {
-        hideOverlay();
-        document.body.style.overflow = '';
-    }
-}
-
-
-/* ====== Create Modal Step Logic ====== */
-if (toExercisesBtn) {
-    toExercisesBtn.addEventListener('click', () => {
-        const title = inputTrainingName?.value.trim();
-        if (!title) {
-            alert('Пожалуйста, введите название тренировки.');
-            return;
-        }
-        currentTempTitle = title;
-        if (stepTitle) stepTitle.classList.remove('active');
-        if (stepExercises) stepExercises.classList.add('active');
-        if (trainingTitleDisplay) trainingTitleDisplay.textContent = currentTempTitle;
-    });
-}
-
-if (backToTitleBtn) {
-    backToTitleBtn.addEventListener('click', () => {
-        if (stepExercises) stepExercises.classList.remove('active');
-        if (stepTitle) stepTitle.classList.add('active');
-    });
-}
-
-
-/* ====== Create Modal Exercise Form Logic ====== */
-function renderExerciseForm(show = false) {
-    if (!exerciseForm) return;
-    exerciseForm.style.display = show ? 'block' : 'none';
-    if (toggleExerciseFormBtn) toggleExerciseFormBtn.textContent = show ? 'Скрыть форму' : 'Добавить упражнение';
-    if (saveExerciseBtn) saveExerciseBtn.textContent = 'Сохранить';
-    if (saveExerciseBtn) delete saveExerciseBtn.dataset.editIndex; // Сброс индекса редактирования
-}
-
-if (toggleExerciseFormBtn) {
+/* ====== Exercises (Create Modal) ====== */
+if (toggleExerciseFormBtn && exerciseForm && exName) {
     toggleExerciseFormBtn.addEventListener('click', () => {
-        renderExerciseForm(exerciseForm.style.display === 'none');
+        exerciseForm.classList.toggle('active');
+        if (exerciseForm.classList.contains('active')) exName.focus();
     });
 }
 
-if (cancelExerciseBtn) {
+
+if (cancelExerciseBtn && exName && exDesc && exReps && exMin && exSec && exerciseForm) {
     cancelExerciseBtn.addEventListener('click', () => {
-        renderExerciseForm(false);
-        // Сброс полей формы
-        if(exName) exName.value = '';
-        if(exDesc) exDesc.value = '';
-        if(exReps) exReps.value = '';
-        if(exMin) exMin.value = '';
-        if(exSec) exSec.value = '';
+        exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
+        exerciseForm.classList.remove('active');
     });
 }
 
-if (saveExerciseBtn) {
+
+if (saveExerciseBtn && exName && exReps && exerciseForm) {
     saveExerciseBtn.addEventListener('click', () => {
-        const name = exName ? exName.value.trim() : '';
+        const name = exName.value.trim();
         const desc = exDesc ? exDesc.value.trim() : '';
-        const reps = parseInt(exReps ? exReps.value : 0 || 0);
+        const reps = parseInt(exReps.value);
         const min = parseInt(exMin ? exMin.value : 0 || 0);
         const sec = parseInt(exSec ? exSec.value : 0 || 0);
 
-        if (!name || !reps || reps < 1) {
-            alert('Название и количество повторений (больше 0) обязательны');
-            return;
-        }
+        if (!name || !reps || reps < 1) { alert('Название и количество повторений (больше 0) обязательны'); return; }
 
         const editIndex = saveExerciseBtn.dataset.editIndex;
         if (editIndex !== undefined && editIndex !== '') {
             // Мы редактируем tempExercises, так как это CreateModal
-            tempExercises[+editIndex] = { name, 
-                // ⭐ ИСПРАВЛЕНО: Использование 'desc'
-                desc, 
-                reps, min, sec, sets: 1 };
+            tempExercises[+editIndex] = { name, desc, reps, min, sec, sets: 1 };
             delete saveExerciseBtn.dataset.editIndex;
         } else {
-            tempExercises.push({ name, 
-                // ⭐ ИСПРАВЛЕНО: Использование 'desc'
-                desc, 
-                reps, min, sec, sets: 1 });
+            tempExercises.push({ name, desc, reps, min, sec, sets: 1 });
         }
 
-        if (exName) exName.value = '';
-        if (exDesc) exDesc.value = '';
-        if (exReps) exReps.value = '';
-        if (exMin) exMin.value = '';
-        if (exSec) exSec.value = '';
-
-        renderExerciseForm(false); // Скрываем форму после сохранения/обновления
-        renderExerciseList();
+        exName.value = desc.value = exReps.value = exMin.value = exSec.value = '';
+        exerciseForm.classList.remove('active');
+        renderExerciseCards();
+        updateSaveTrainingBtn();
     });
 }
 
-/* ====== Create Modal Exercise List Logic ====== */
-function renderExerciseList() {
-    if (!exerciseList) return;
-    if (tempExercises.length === 0) {
-        exerciseList.innerHTML = '<p class="empty-text">Список упражнений пуст.</p>';
-        if (saveTrainingBtn) saveTrainingBtn.disabled = true;
-        return;
+
+/* ====== Switching steps ====== */
+if (toExercisesBtn && inputTrainingName && trainingTitleDisplay && stepTitle && stepExercises && toggleExerciseFormBtn) {
+    toExercisesBtn.addEventListener('click', () => {
+        const name = inputTrainingName.value.trim();
+        if (!name) { alert('Введите название тренировки'); return; }
+        currentTempTitle = name;
+        trainingTitleDisplay.textContent = name;
+        stepTitle.classList.remove('active');
+        stepExercises.classList.add('active');
+        // Фокусировка на кнопке "Добавить упражнение"
+        toggleExerciseFormBtn.focus();
+    });
+}
+
+
+if (backToTitleBtn && stepTitle && stepExercises) {
+    backToTitleBtn.addEventListener('click', () => {
+        stepTitle.classList.add('active');
+        stepExercises.classList.remove('active');
+    });
+}
+
+
+/* ====== Save workout (Create Modal) ====== */
+if (saveTrainingBtn) {
+    saveTrainingBtn.addEventListener('click', async () => {
+        if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
+        const payload = {
+            id: editingWorkoutId || 0,
+            user_id: tgUser.id,
+            title: currentTempTitle,
+            exercises: tempExercises
+        };
+
+        try {
+            const savedWorkout = await saveWorkoutToServer(payload);
+            if (!savedWorkout) throw new Error("Не удалось сохранить тренировку");
+
+            if (editingWorkoutId) {
+                const index = workouts.findIndex(w => Number(w.id) === Number(editingWorkoutId));
+                if (index > -1) workouts[index] = savedWorkout;
+
+                if (activeViewId === editingWorkoutId && viewModal && viewModal.classList.contains('show')) {
+                    // Обновляем название в ViewModal 
+                    if (viewTitleDisplay) viewTitleDisplay.textContent = savedWorkout.title; 
+                    
+                    if (viewModal.classList.contains('edit-mode')) {
+                        exitEditMode(); 
+                    } else {
+                        renderViewExercises(); 
+                    }
+                }
+            } else {
+                workouts.push(savedWorkout);
+            }
+
+            renderWorkouts();
+            closeCreate();
+        } catch (err) {
+            console.error("saveTraining error:", err);
+            alert("Ошибка при сохранении тренировки. Посмотрите консоль.");
+        }
+    });
+}
+
+
+/* ====== Render workouts ====== */
+function renderWorkouts() {
+    if (!workoutContainer) return;
+    workoutContainer.innerHTML = '';
+    if (!workouts.length) { 
+        workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>'; 
+        return; 
     }
-    
-    if (saveTrainingBtn) saveTrainingBtn.disabled = false;
-    
+    workouts.forEach(w => {
+        const title = w.title || w.name || 'Без названия';
+        const div = document.createElement('div');
+        div.className = 'workout-card';
+        div.innerHTML = `<div class="workout-title">${title}</div><div class="workout-info">${(w.exercises || []).length} упражнений</div>`;
+        div.onclick = () => openView(w.id);
+        workoutContainer.appendChild(div);
+    });
+}
+
+/* ====== Exercise cards (Create Modal) ====== */
+function renderExerciseCards() {
+    if (!exerciseList) return;
     exerciseList.innerHTML = '';
     tempExercises.forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'exercise-card';
-        // Формируем строку описания
-        const descHtml = ex.desc ? `<div class="ex-desc">${ex.desc}</div>` : '';
-        
         div.innerHTML = `
             <div class="ex-card-head">
                 <div class="ex-title">${ex.name}</div>
                 <div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
             </div>
-            ${descHtml}
             <div class="ex-actions">
                 <button class="icon-small" onclick="editExercise(${idx})">✎</button>
                 <button class="icon-small" onclick="deleteExercise(${idx})">🗑</button>
@@ -420,329 +436,123 @@ function renderExerciseList() {
 
 function editExercise(idx) {
     const ex = tempExercises[idx];
-    if (exName) exName.value = ex.name;
-    if (exDesc) exDesc.value = ex.desc || '';
-    if (exReps) exReps.value = ex.reps;
-    if (exMin) exMin.value = ex.min;
+    if (exName) exName.value = ex.name; 
+    if (exDesc) exDesc.value = ex.desc; 
+    if (exReps) exReps.value = ex.reps; 
+    if (exMin) exMin.value = ex.min; 
     if (exSec) exSec.value = ex.sec;
-
-    if (saveExerciseBtn) {
-        saveExerciseBtn.textContent = 'Обновить';
-        saveExerciseBtn.dataset.editIndex = idx;
-    }
-    renderExerciseForm(true);
+    if (exerciseForm) exerciseForm.classList.add('active');
+    if (saveExerciseBtn) saveExerciseBtn.dataset.editIndex = idx;
+    if (exName) exName.focus(); // Фокусируемся на имени
 }
 
 function deleteExercise(idx) {
-    if (confirm(`Удалить упражнение "${tempExercises[idx].name}"?`)) {
-        tempExercises.splice(idx, 1);
-        renderExerciseList();
+    tempExercises.splice(idx, 1);
+    renderExerciseCards();
+    updateSaveTrainingBtn();
+}
+
+function updateSaveTrainingBtn() {
+    if (saveTrainingBtn) {
+        saveTrainingBtn.disabled = tempExercises.length < 1;
+        saveTrainingBtn.classList.toggle('disabled', tempExercises.length < 1);
     }
 }
 
+/* ====== Profile ====== */
+if (profileBtn) profileBtn.addEventListener('click', getProfile);
 
-/* ====== Create Modal Save Training Logic ====== */
-if (saveTrainingBtn) {
-    saveTrainingBtn.addEventListener('click', async () => {
-        if (tempExercises.length === 0) {
-            alert('Добавьте хотя бы одно упражнение.');
-            return;
-        }
-
-        const payload = {
-            id: editingWorkoutId || 0,
-            user_id: tgUser.id,
-            title: currentTempTitle,
-            exercises: tempExercises.map(ex => ({
-                // Id не нужен, так как это DTO для сохранения новых/обновления.
-                name: ex.name,
-                // ⭐ ИСПРАВЛЕНО: Использование 'desc'
-                desc: ex.desc || null, 
-                reps: ex.reps,
-                sets: ex.sets || 1,
-                min: ex.min || 0,
-                sec: ex.sec || 0
-            }))
-        };
-        
-        const saved = await saveWorkout(payload);
-        if (saved) {
-            closeCreate();
-            renderWorkouts();
-        }
-    });
-}
-
-
-/* ====== Main App Logic ====== */
-document.addEventListener('DOMContentLoaded', async () => {
-    await registerUser();
-    await fetchWorkouts();
-    renderWorkouts();
-
-    // Добавляем обработчики для модалок, чтобы они работали
-    if (openCreateModal) openCreateModal.addEventListener('click', () => openCreate());
-    if (closeCreateModal) closeCreateModal.addEventListener('click', closeCreate);
-
-    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КЛИКА ПО ОВЕРЛЕЮ
-    if (overlay && viewModal && profileModal && createModal) {
-        overlay.addEventListener('click', () => {
-            if (viewModal.classList.contains('show')) {
-                // Если открыт viewModal, проверяем режим редактирования
-                if (viewModal.classList.contains('edit-mode') && (isAddingNewExerciseInView || editingViewExerciseIndex !== null)) {
-                    // Если открыта форма добавления или редактирования упражнения, не закрываем модалку по оверлею
-                    return; 
-                }
-                closeView();
-            } else if (createModal.classList.contains('show')) {
-                closeCreate();
-            } else if (profileModal.classList.contains('show')) {
-                closeProfile();
-            }
-        });
+// Новая функция для закрытия ProfileModal (для использования в openCreate)
+function closeProfileModal(hideOverlayFlag = true) {
+    if (hideOverlayFlag) hideOverlay();
+    if (profileModal) {
+        profileModal.classList.remove('show');
+        profileModal.setAttribute('aria-hidden', 'true');
     }
-});
-
-
-/* ====== Profile Modal Logic ====== */
-if (profileBtn) {
-    profileBtn.addEventListener('click', async () => {
-        if (!tgUser.id) {
-            alert('Нет данных пользователя Telegram.');
-            return;
-        }
-        try {
-            await getProfile();
-            openModal(profileModal);
-        } catch (e) {
-            alert('Не удалось загрузить данные профиля: ' + e.message);
-        }
-    });
 }
 
-if (closeProfileBtn) {
-    closeProfileBtn.addEventListener('click', closeProfile);
-}
-
-function closeProfile() {
-    closeModal(profileModal);
-}
+if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => closeProfileModal(true));
 
 if (saveProfileBtn) {
     saveProfileBtn.addEventListener('click', async () => {
-        try {
-            await saveProfile();
-            alert('Профиль сохранен!');
-            closeProfile();
-        } catch (e) {
-            alert('Ошибка сохранения профиля: ' + e.message);
-        }
+        if (notifyTime) await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value || '' });
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        closeProfileModal(true);
     });
 }
 
 
-/* ====== Rendering Main Workouts ====== */
-function renderWorkouts() {
-    if (!workoutContainer) return;
-    if (workouts.length === 0) {
-        workoutContainer.innerHTML = '<p class="empty-text">Список тренировок пуст.</p>';
-        return;
-    }
+// --- НОВЫЕ/ИЗМЕНЕННЫЕ ФУНКЦИИ УПРАВЛЕНИЯ РЕДАКТИРОВАНИЕМ В VIEW MODAL ---
 
-    workoutContainer.innerHTML = '';
-    workouts.forEach(w => {
-        const card = document.createElement('div');
-        card.className = 'workout-card';
-        const titleToDisplay = w.title || w.name || 'Без названия'; 
-        const exerciseCount = w.exercises ? w.exercises.length : 0;
-        card.innerHTML = `
-            <h3>${titleToDisplay}</h3>
-            <p>${exerciseCount} упражнений</p>
-            <div class="row">
-                <button class="btn primary small" onclick="openView(${w.id})">Просмотр</button>
-                <button class="btn ghost small delete-btn" onclick="confirmDeleteWorkout(${w.id})">Удалить</button>
-            </div>
-        `;
-        workoutContainer.appendChild(card);
-    });
-}
-
-
-/* ====== View Modal Logic ====== */
-function openView(id) {
-    const w = workouts.find(x => Number(x.id) === Number(id));
-    if (!w) {
-        alert('Тренировка не найдена.');
-        return;
-    }
+/**
+ * Асинхронно сохраняет изменения тренировки на сервере и обновляет UI.
+ * @param {object} workout - Объект тренировки из массива workouts
+ * @returns {Promise<boolean>}
+ */
+async function saveWorkoutChanges(workout) {
+    // ⭐ ИЗМЕНЕНИЕ 1: Явное формирование DTO с правильным полем 'desc'
+    const payload = {
+        id: workout.id,
+        user_id: workout.user_id,
+        title: workout.title || workout.name,
+        exercises: workout.exercises.map(e => ({
+            id: e.id || 0, 
+            name: e.name,
+            // ИСПРАВЛЕНО: desc вместо description
+            desc: e.desc || null, 
+            reps: e.reps,
+            sets: e.sets || 1,
+            min: e.min || 0,
+            sec: e.sec || 0
+        }))
+    };
     
-    activeViewId = id;
-    
-    // Сброс режима редактирования и добавления
-    viewModal?.classList.remove('edit-mode');
-    editingViewExerciseIndex = null;
-    isAddingNewExerciseInView = false;
-    
-    if (viewTitleDisplay) viewTitleDisplay.textContent = w.title || w.name;
-    if (viewTitleInput) viewTitleInput.value = w.title || w.name;
-    
-    // Скрываем форму добавления
-    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+    try {
+        // Теперь saveWorkoutToServer будет использовать корректный payload
+        const savedWorkout = await saveWorkoutToServer(payload); 
+        
+        const index = workouts.findIndex(x => Number(x.id) === Number(activeViewId));
+        if (index > -1) workouts[index] = savedWorkout;
 
-    // Скрываем форму редактирования заголовка
-    cancelTitleEdit(); 
-
-    // Скрываем кнопки редактирования (если не в режиме)
-    if (mainViewActions) mainViewActions.style.display = 'flex';
-    if (editModeActions) editModeActions.style.display = 'none';
-
-    renderViewExercises();
-    openModal(viewModal);
+        renderWorkouts(); 
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        return true;
+    } catch (err) {
+        console.error("Ошибка при сохранении редактирования:", err);
+        alert("Ошибка при сохранении. Посмотрите консоль.");
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+        return false;
+    }
 }
 
-function closeView() {
-    closeModal(viewModal);
-    activeViewId = null;
-}
-
-if (closeViewBtn) {
-    closeViewBtn.addEventListener('click', closeView);
-}
-
-
-/* ====== View Modal Exercise Rendering ====== */
-function renderViewExercises() {
-    if (!viewBody) return;
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w || !w.exercises) {
-        viewBody.innerHTML = '<p class="empty-text">Нет упражнений.</p>';
-        return;
-    }
-
-    // Ищем список упражнений (если он есть)
-    let listContainer = document.getElementById('viewExercisesList');
-    if (!listContainer) {
-        listContainer = document.createElement('div');
-        listContainer.id = 'viewExercisesList';
-        viewBody.appendChild(listContainer);
-    }
-
-    listContainer.innerHTML = '';
-    const isEditMode = viewModal?.classList.contains('edit-mode');
-
-    // Рисуем список упражнений
-    (w.exercises || []).forEach((ex, idx) => {
-        const div = document.createElement('div');
-        div.className = 'view-ex';
-        // Для удобства в DOM даем ему уникальный ID (если нет Id от сервера, используем локальный)
-        const exDomId = ex.id || `local-${idx}`; 
-        div.setAttribute('data-ex-id', exDomId);
-
-        const isEditingThisExercise = isEditMode && editingViewExerciseIndex === idx;
-        if (isEditingThisExercise) { 
-            div.classList.add('is-editing');
-        }
-
-        // --- 1. БЛОК ОТОБРАЖЕНИЯ (только текст) --- 
-        const timeStr = (ex.min > 0 || ex.sec > 0) ? `${ex.min}м ${ex.sec}с` : '—';
-        const displayBlock = `
-            <div class="view-display">
-                <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
-                <div class="ex-meta">${ex.reps} повт • Подходы: ${ex.sets || 1} • Отдых: ${timeStr}</div>
-                ${ex.desc ? `<div class="ex-desc-view">${ex.desc}</div>` : ''}
-            </div>
-        `;
-
-        // --- 2. БЛОК РЕДАКТИРОВАНИЯ (форма) ---
-        const editBlock = `
-            <div class="view-edit-form" style="display:none;">
-                <input type="text" value="${ex.name || ''}" placeholder="Название *" data-field="name">
-                <input type="text" value="${ex.desc || ''}" placeholder="Описание (необязательно)" data-field="desc">
-                <input type="number" value="${ex.reps || 1}" placeholder="Повторения *" min="1" data-field="reps">
-                <div class="time-row">
-                    <input type="number" value="${ex.min || 0}" placeholder="Мин" min="0" data-field="min">
-                    <input type="number" value="${ex.sec || 0}" placeholder="Сек" min="0" max="59" data-field="sec">
-                </div>
-                <div class="row end">
-                    <button class="btn primary small" onclick="saveOneViewExercise(event, ${idx})">Сохранить</button>
-                    <button class="btn ghost small" onclick="cancelEditViewExercise()">Отмена</button>
-                    <button class="btn ghost small delete-btn" onclick="deleteViewExercise(${idx})">Удалить</button>
-                </div>
-            </div>
-        `;
-
-        // --- 3. КНОПКА ДЕЙСТВИЯ ---
-        const actionButton = isEditMode ? 
-            `<button class="icon-btn edit-btn" onclick="startEditViewExercise(${idx})">✎</button>` : '';
-
-        div.innerHTML = displayBlock + editBlock + actionButton;
-        listContainer.appendChild(div);
-    });
-}
-
-
-/* ====== View Modal Edit Mode Logic ====== */
-if (editWorkoutBtn) {
-    editWorkoutBtn.addEventListener('click', enterEditMode);
-}
-
-function enterEditMode() {
-    if (viewModal) viewModal.classList.add('edit-mode');
-    // Переключение главных действий на действия редактирования
-    if (mainViewActions) mainViewActions.style.display = 'none';
-    if (editModeActions) editModeActions.style.display = 'flex';
-    // Сброс всех состояний редактирования, чтобы показать список
-    editingViewExerciseIndex = null;
-    isAddingNewExerciseInView = false;
-    // Явно скрываем форму добавления упражнения
-    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
-    renderViewExercises();
-}
-
-if (exitEditModeBtn) {
-    exitEditModeBtn.addEventListener('click', exitEditMode);
-}
-
-// ⭐ ФУНКЦИЯ exitEditMode (теперь используется только для полного выхода)
-function exitEditMode() {
-    if (viewModal) viewModal.classList.remove('edit-mode');
-    editingViewExerciseIndex = null;
-    cancelTitleEdit(); 
-    if (mainViewActions) mainViewActions.style.display = 'flex';
-    if (editModeActions) editModeActions.style.display = 'none';
-    // Скрываем форму добавления
-    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
-    isAddingNewExerciseInView = false;
-    renderViewExercises();
-}
-
-
-/* ====== View Modal Title Editing Logic ====== */
-if (viewTitleEditBtn) {
-    viewTitleEditBtn.addEventListener('click', startTitleEdit);
-}
+// ⭐ ЛОГИКА РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ
 
 function startTitleEdit() {
-    if (!viewTitleDisplayContainer || !viewTitleEditForm) return;
-    viewTitleDisplayContainer.style.display = 'none';
-    viewTitleEditForm.style.display = 'flex';
-    if (viewTitleInput) viewTitleInput.focus();
-}
-
-if (viewTitleCancelBtn) {
-    viewTitleCancelBtn.addEventListener('click', cancelTitleEdit);
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
+    if (!w) return;
+    
+    if (viewTitleEditForm && viewTitleInput && viewTitleDisplayContainer) {
+        // Показываем форму и скрываем отображение
+        viewTitleEditForm.style.display = 'flex';
+        viewTitleDisplayContainer.style.display = 'none';
+        
+        viewTitleInput.value = w.title;
+        viewTitleInput.focus();
+        
+        // ВАЖНО: При редактировании названия, список упражнений нужно обновить, чтобы
+        // скрыть кнопки действий, так как editModeActions управляется в renderViewExercises
+        renderViewExercises(); 
+    }
 }
 
 function cancelTitleEdit() {
-    if (!viewTitleDisplayContainer || !viewTitleEditForm) return;
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (w && viewTitleInput) viewTitleInput.value = w.title || w.name; 
-    viewTitleDisplayContainer.style.display = 'flex';
-    viewTitleEditForm.style.display = 'none';
-}
-
-if (viewTitleSaveBtn) {
-    viewTitleSaveBtn.addEventListener('click', saveTitleEdit);
+    if (viewTitleEditForm && viewTitleDisplayContainer) {
+        // Скрываем форму и показываем отображение
+        viewTitleEditForm.style.display = 'none';
+        viewTitleDisplayContainer.style.display = 'flex';
+        
+        renderViewExercises(); 
+    }
 }
 
 async function saveTitleEdit() {
@@ -753,46 +563,68 @@ async function saveTitleEdit() {
         viewTitleInput.focus();
         return;
     }
-
+    
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
-
+    
     w.title = newTitle;
     w.name = newTitle; // Обновляем оба поля для консистентности
-    if(viewTitleDisplay) viewTitleDisplay.textContent = newTitle;
-
-    const saved = await saveWorkoutChanges(w);
-
+    
+    if(viewTitleDisplay) viewTitleDisplay.textContent = newTitle; 
+    
+    const saved = await saveWorkoutChanges(w); 
+    
     if (saved) {
         cancelTitleEdit(); // Выходим из режима редактирования названия
     }
 }
+
 // ⭐ КОНЕЦ ЛОГИКИ РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ
 
-
-/* ====== View Modal Existing Exercise Editing Logic ====== */
 function startEditViewExercise(idx) {
-    editingViewExerciseIndex = idx;
-    isAddingNewExerciseInView = false;
-    if (viewExerciseForm) viewExerciseForm.style.display = 'none'; // Скрываем форму добавления
+    if (viewTitleEditForm && viewTitleEditForm.style.display === 'flex') return;
 
-    // Обновляем классы для отображения формы редактирования нужного элемента
-    document.querySelectorAll('.view-ex').forEach((el, index) => {
-        if (index === idx) {
-            el.classList.add('is-editing');
-            const nameInput = el.querySelector('input[data-field="name"]');
-            if (nameInput) nameInput.focus();
-        } else {
-            el.classList.remove('is-editing');
-        }
-    });
+    // Скрываем форму добавления упражнения, если она была открыта
+    if (isAddingNewExerciseInView) {
+        if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+        if (addExerciseToViewBtn) addExerciseToViewBtn.style.display = 'block'; 
+        isAddingNewExerciseInView = false;
+    }
+    
+    // ⭐ Устанавливаем индекс редактируемого упражнения
+    editingViewExerciseIndex = idx;
+    
+    // ⭐ Перерисовываем список, чтобы показать форму редактирования вместо карточки
+    renderViewExercises(); 
+    
+    setTimeout(() => {
+        // Фокусируемся на имени упражнения в появившейся форме
+        const form = viewBody?.querySelector(`.view-edit-form[data-index="${idx}"]`);
+        form?.querySelector('[data-field="name"]')?.focus();
+    }, 0); 
 }
 
 function cancelEditViewExercise() {
     editingViewExerciseIndex = null;
-    document.querySelectorAll('.view-ex').forEach(el => el.classList.remove('is-editing'));
+    renderViewExercises();
 }
 
+function deleteViewExercise(idx) {
+    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
+    if (!w) return;
+    
+    if (confirm('Удалить это упражнение из тренировки?')) {
+        w.exercises.splice(idx, 1);
+        // ⭐ Убедимся, что после удаления мы не находимся в режиме редактирования упражнения
+        editingViewExerciseIndex = null; 
+        saveWorkoutChanges(w); // Вызовет renderWorkouts()
+        renderViewExercises(); // Обновит список внутри модалки
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~
+// Функция saveOneViewExercise
+// ~~~~~~~~~~~~~~~~~~~~
 async function saveOneViewExercise(event, idx) {
     event.preventDefault();
 
@@ -801,7 +633,7 @@ async function saveOneViewExercise(event, idx) {
 
     // Сбор данных из полей формы
     const name = item.querySelector('input[data-field="name"]')?.value.trim() || "";
-    // ⭐ ИСПРАВЛЕНО: Использование 'desc'
+    // ⭐ ИСПРАВЛЕНИЕ: desc вместо description
     const desc = item.querySelector('input[data-field="desc"]')?.value.trim() || ""; 
     const reps = Number(item.querySelector('input[data-field="reps"]')?.value) || 0;
     const min = Number(item.querySelector('input[data-field="min"]')?.value) || 0;
@@ -812,121 +644,371 @@ async function saveOneViewExercise(event, idx) {
         return;
     }
 
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w || !w.exercises[idx]) return;
-
+    let w = workouts.find(x => Number(x.id) === Number(activeViewId));
+    if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
+    
     // Обновляем объект в памяти
     const ex = w.exercises[idx];
     ex.name = name;
-    // ⭐ ИСПРАВЛЕНО: Использование 'desc'
-    ex.desc = desc || null;
+    // ⭐ ИСПРАВЛЕНИЕ: desc вместо description
+    ex.desc = desc || null; 
     ex.reps = reps;
     ex.min = min;
     ex.sec = sec;
-
+    
     const saved = await saveWorkoutChanges(w);
-
+    
     if (saved) {
-        editingViewExerciseIndex = null;
-        renderViewExercises();
+        cancelEditViewExercise();
     }
 }
 
-function deleteViewExercise(idx) {
-    if (!confirm('Вы уверены, что хотите удалить это упражнение?')) return;
+// ⭐ ФУНКЦИЯ enterEditMode
+function enterEditMode(workoutId) {
+    console.log(`[DEBUG] Вход в режим редактирования для ID: ${workoutId}`); // ОТЛАДКА
+    
+    currentWorkoutId = workoutId;
+    if (viewModal) viewModal.classList.add('edit-mode');
+    
+    // Переключение главных действий на действия редактирования
+    if (mainViewActions) mainViewActions.style.display = 'none';
+    if (editModeActions) editModeActions.style.display = 'flex';
+    
+    // Сброс всех состояний редактирования, чтобы показать список
+    editingViewExerciseIndex = null;
+    isAddingNewExerciseInView = false;
+    
+    // Явно скрываем форму добавления упражнения
+    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+    
+    renderViewExercises(); 
+}
 
+
+// ⭐ ФУНКЦИЯ exitEditMode (теперь используется только для полного выхода)
+function exitEditMode() {
+    if (viewModal) viewModal.classList.remove('edit-mode');
+    editingViewExerciseIndex = null;
+    cancelTitleEdit(); 
+    
+    // ⭐ FIX: Скрываем кнопку добавления и форму упражнения
+    if (addExerciseToViewBtn) addExerciseToViewBtn.style.display = 'none'; 
+    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+    isAddingNewExerciseInView = false; 
+    
+    renderViewExercises(); 
+}
+
+/* ====== View modal (Просмотр и Редактирование на месте) ====== */
+function renderViewExercises() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w) return;
+    if (!w || !viewBody) return;
+    
+    // ⭐ Скрываем/Отображаем форму добавления упражнения
+    if (viewExerciseForm) viewExerciseForm.style.display = isAddingNewExerciseInView ? 'block' : 'none';
+    
+    viewBody.innerHTML = ''; // Очищаем контейнер, чтобы перерисовать (теперь он не содержит кнопку и форму)
+    
+    const isEditMode = viewModal?.classList.contains('edit-mode');
+    const isTitleEditing = viewTitleEditForm?.style.display === 'flex';
 
-    w.exercises.splice(idx, 1);
+    // Управление отображением кнопок в заголовке
+    if (mainViewActions && editModeActions) {
+        mainViewActions.style.display = isEditMode ? 'none' : 'flex'; 
+        // В режиме редактирования, кнопки видны только если не редактируется название И не открыта форма добавления И не редактируется упражнение
+        const showEditActions = isEditMode && !isTitleEditing && !isAddingNewExerciseInView && editingViewExerciseIndex === null;
+        editModeActions.style.display = showEditActions ? 'flex' : 'none'; 
+    }
+    
+    // ⭐ Управление видимостью кнопки-карандаша для названия (только если в режиме редактирования)
+    if (viewTitleEditBtn) {
+        // Кнопка-карандаш видна, только если мы в режиме редактирования И НЕ редактируем название И НЕ добавляем новое упражнение И НЕ редактируем упражнение
+        const showTitleEditButton = isEditMode && !isTitleEditing && !isAddingNewExerciseInView && editingViewExerciseIndex === null;
+        viewTitleEditBtn.style.display = showTitleEditButton ? 'block' : 'none'; 
+    }
+    if (viewTitleDisplay) {
+        viewTitleDisplay.textContent = w.title || w.name || 'Без названия';
+    }
+    if (viewTitleDisplayContainer) {
+        // Контейнер отображения виден, если мы не редактируем форму названия
+        viewTitleDisplayContainer.style.display = isTitleEditing ? 'none' : 'flex';
+    }
 
-    saveWorkoutChanges(w).then(saved => {
-        if (saved) {
-            editingViewExerciseIndex = null;
-            renderViewExercises();
-        } else {
-            alert('Не удалось удалить упражнение.');
+    // ⭐ Управление видимостью кнопки "Добавить упражнение" (теперь она находится вне viewBody)
+    if (addExerciseToViewBtn) {
+        // Кнопка видна, если мы в режиме редактирования, не редактируем название, не редактируем конкретное упражнение, И НЕ ОТКРЫТА ФОРМА ДОБАВЛЕНИЯ
+        const showAddButton = isEditMode && !isTitleEditing && editingViewExerciseIndex === null && !isAddingNewExerciseInView;
+        addExerciseToViewBtn.style.display = showAddButton ? 'block' : 'none'; 
+    }
+
+    // Рисуем список упражнений
+    (w.exercises || []).forEach((ex, idx) => {
+        const div = document.createElement('div');
+        div.className = 'view-ex';
+        
+        const isEditingThisExercise = isEditMode && editingViewExerciseIndex === idx;
+        
+        // ⭐ FIX 1: Добавляем класс, если мы редактируем это упражнение
+        if (isEditingThisExercise) {
+            div.classList.add('is-editing');
+        }
+        
+        // --- 1. БЛОК ОТОБРАЖЕНИЯ (только текст) ---
+        const displayBlock = `
+            <div class="view-display">
+                <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
+                ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
+                <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+            </div>`;
+        
+        // --- 2. БЛОК РЕДАКТИРОВАНИЯ СПИСКА (кнопки) ---
+        const editListBlock = `
+            <div class="view-edit-list-item">
+                <div style="font-weight:600; flex-grow:1;">${idx + 1}. ${ex.name}</div>
+                <div class="ex-actions" style="display:flex; gap:8px;">
+                    <button class="icon-small" onclick="startEditViewExercise(${idx})">✎</button>
+                    <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
+            </div>
+            </div>`;
+        
+        // --- 3. ФОРМА РЕДАКТИРОВАНИЯ (поля ввода) ---
+        const editForm = `
+            <div class="view-edit-form" data-index="${idx}">
+                <div style="font-weight:700; margin-bottom:10px;">Редактирование: ${ex.name}</div>
+                <input type="text" value="${ex.name}" placeholder="Название упражнения" data-field="name">
+                <input type="text" value="${ex.desc || ''}" placeholder="Описание" data-field="desc">
+                <input type="number" value="${ex.reps}" placeholder="Повторения *" min="1" data-field="reps">
+                <div class="time-row">
+                    <input type="number" value="${ex.min}" placeholder="Мин" min="0" data-field="min">
+                    <input type="number" value="${ex.sec}" placeholder="Сек" min="0" max="59" data-field="sec">
+                </div>
+                <div class="row end" style="margin-top:10px;">
+                    <button class="btn ghost" onclick="cancelEditViewExercise()">Отмена</button>
+                    <button class="btn primary" onclick="saveOneViewExercise(${idx})">Сохранить упражнение</button>
+                </div>
+            </div>`;
+
+        // ⭐ FIX 1: Объединяем все блоки в div.innerHTML
+        div.innerHTML = displayBlock + editListBlock + editForm;
+
+        viewBody.appendChild(div);
+    });
+}
+
+
+/**
+ * Открывает модальное окно просмотра.
+ * @param {number|null} id ID тренировки.
+ * @param {boolean} showOverlayFlag Отображать ли оверлей (по умолчанию true).
+ */
+function openView(id, showOverlayFlag = true) {
+    activeViewId = Number(id);
+    currentWorkoutId = Number(id); // Обновляем currentWorkoutId для новой логики
+    if (showOverlayFlag) showOverlay();
+    if (viewModal) {
+        viewModal.classList.add('show');
+        viewModal.classList.remove('edit-mode'); 
+    }
+    editingViewExerciseIndex = null; 
+    
+    const w = workouts.find(x => Number(x.id) === Number(id));
+    if(viewTitleDisplay) viewTitleDisplay.textContent = w?.title || w?.name || 'Без названия';
+    
+    if (viewTitleEditForm) viewTitleEditForm.style.display = 'none';
+    
+    // ⭐ Скрываем форму добавления упражнения при открытии
+    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+    isAddingNewExerciseInView = false;
+    
+    renderViewExercises();
+}
+
+/**
+ * Закрывает модальное окно просмотра.
+ * @param {boolean} hideOverlayFlag Скрывать ли оверлей (по умолчанию true).
+ */
+function closeView(hideOverlayFlag = true) {
+    if (viewModal) {
+        viewModal.classList.remove('show');
+        viewModal.classList.remove('edit-mode'); 
+    }
+    editingViewExerciseIndex = null; 
+    if (hideOverlayFlag) hideOverlay();
+    activeViewId = null;
+    currentWorkoutId = null;
+    cancelTitleEdit(); 
+
+    // ⭐ Скрываем кнопку добавления и форму упражнения
+    if (addExerciseToViewBtn) addExerciseToViewBtn.style.display = 'none'; 
+    if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+    isAddingNewExerciseInView = false; 
+}
+
+/* ====== Event listeners ====== */
+if (openCreateModal) openCreateModal.addEventListener('click', () => openCreate());
+if (closeCreateModal) closeCreateModal.addEventListener('click', closeCreate);
+
+// ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КЛИКА ПО ОВЕРЛЕЮ
+if (overlay && viewModal && profileModal && createModal) {
+    overlay.addEventListener('click', () => {
+        if (viewModal.classList.contains('show')) {
+            // Если открыт viewModal, проверяем режим редактирования
+            if (viewModal.classList.contains('edit-mode') && (isAddingNewExerciseInView || editingViewExerciseIndex !== null)) {
+                // Если открыта форма добавления или редактирования упражнения, не закрываем модалку по оверлею
+                return;
+            }
+            closeView();
+        } else if (profileModal.classList.contains('show')) {
+            closeProfileModal();
+        } else if (createModal.classList.contains('show')) { 
+            closeCreate();
         }
     });
 }
 
 
-/* ====== View Modal New Exercise Adding Logic ====== */
-if (addExerciseToViewBtn) {
-    addExerciseToViewBtn.addEventListener('click', () => {
-        // Сбрасываем режим редактирования существующих
-        editingViewExerciseIndex = null;
-        document.querySelectorAll('.view-ex').forEach(el => el.classList.remove('is-editing'));
+// ⭐ ВАЖНОЕ ИСПРАВЛЕНИЕ: Добавление проверки на существование элемента
+if (editWorkoutBtn) {
+    editWorkoutBtn.addEventListener('click', () => { 
+        if (activeViewId === null) return;
+        enterEditMode(activeViewId); 
+    });
+}
 
-        // Показываем форму добавления
-        if (viewExerciseForm) viewExerciseForm.style.display = 'block';
+if (deleteWorkoutBtn) {
+    deleteWorkoutBtn.addEventListener('click', async () => {
+        if (activeViewId === null) return;
+        if (!confirm("Удалить эту тренировку?")) return;
+        try {
+            await deleteWorkoutFromServer(Number(activeViewId));
+            workouts = workouts.filter(w => Number(w.id) !== Number(activeViewId));
+            renderWorkouts();
+            closeView();
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        } catch (err) { 
+            console.error(err); 
+            alert("Ошибка при удалении тренировки."); 
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+        }
+    });
+}
+
+if (closeViewBtn) closeViewBtn.addEventListener('click', closeView);
+
+// ⭐ FIX 2: Handler для кнопки "←" (exitEditModeBtn) в шапке
+if (exitEditModeBtn) exitEditModeBtn.addEventListener('click', () => {
+    if (isAddingNewExerciseInView) {
+        // Если открыта форма добавления, закрываем ее, возвращаясь к списку
+        if (cancelNewViewExerciseBtn) cancelNewViewExerciseBtn.click(); 
+    } else if (editingViewExerciseIndex !== null) {
+        // Если открыта форма редактирования конкретного упражнения
+        cancelEditViewExercise();
+    } else {
+        // Если форма закрыта, или мы просто в списке, то выходим из режима редактирования
+        exitEditMode();
+    }
+});
+
+
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ В МОДАЛКЕ ПРОСМОТРА
+if (saveViewChangesBtn) {
+    saveViewChangesBtn.addEventListener('click', async () => {
+        // Эта кнопка теперь служит только информационным сообщением, как вы просили
+        alert("Кнопка 'Сохранить изменения' теперь не используется. Сохранение происходит автоматически при редактировании названия или при нажатии 'Сохранить упражнение'.");
+    });
+}
+
+// ⭐ СЛУШАТЕЛИ СОБЫТИЙ ДЛЯ РЕДАКТИРОВАНИЯ НАЗВАНИЯ
+if (viewTitleEditBtn) viewTitleEditBtn.addEventListener('click', startTitleEdit);
+if (viewTitleSaveBtn) viewTitleSaveBtn.addEventListener('click', saveTitleEdit);
+if (viewTitleCancelBtn) viewTitleCancelBtn.addEventListener('click', cancelTitleEdit);
+
+// =======================================================
+// ⭐ НОВЫЕ СЛУШАТЕЛИ ДЛЯ УПРАВЛЕНИЯ ФОРМОЙ УПРАЖНЕНИЙ ВНУТРИ VIEW MODAL (Fix Баг 1)
+// =======================================================
+
+// Handler для кнопки "+ Добавить упражнение" в View Modal
+if (addExerciseToViewBtn && viewExerciseForm && viewExName) {
+    addExerciseToViewBtn.addEventListener('click', () => {
         isAddingNewExerciseInView = true;
         
-        // Очистка формы перед фокусом
+        // Отображаем форму и скрываем кнопку
+        if (viewExerciseForm) viewExerciseForm.style.display = 'block';
+        if (addExerciseToViewBtn) addExerciseToViewBtn.style.display = 'none'; 
+        
+        // Очистка полей формы и фокус
         if (viewExName) viewExName.value = '';
         if (viewExDesc) viewExDesc.value = '';
         if (viewExReps) viewExReps.value = '';
         if (viewExMin) viewExMin.value = '';
         if (viewExSec) viewExSec.value = '';
-        if (viewExName) viewExName.focus();
         
-        renderViewExercises(); // Перерисовываем, чтобы скрыть лишние элементы
+        if (viewExName) viewExName.focus();
+
+        renderViewExercises(); // Перерисовываем, чтобы скрыть лишние элементы и показать форму
     });
 }
 
+// Handler для кнопки "Отмена" в форме добавления упражнения
 if (cancelNewViewExerciseBtn) {
     cancelNewViewExerciseBtn.addEventListener('click', () => {
-        if (viewExerciseForm) viewExerciseForm.style.display = 'none';
         isAddingNewExerciseInView = false;
+        
+        // Скрываем форму 
+        if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+        
+        // Очищаем форму редактирования конкретного упражнения, если она была открыта
+        editingViewExerciseIndex = null;
+        renderViewExercises();
     });
 }
 
-// ⭐ ФИКС БАГА: Неработающая кнопка сохранения в режиме просмотра (400 Bad Request)
+
+// Handler для кнопки "Сохранить" в форме добавления упражнения
 if (saveNewViewExerciseBtn) {
-    saveNewViewExerciseBtn.addEventListener('click', async () => {
-        
-        // 1. Получаем актуальные значения из полей ввода
-        const name = viewExName?.value.trim() || "";
-        // ⭐ ИСПРАВЛЕНО: Использование viewExDesc
-        const desc = viewExDesc?.value.trim() || ""; 
-        const reps = Number(viewExReps?.value) || 0;
-        const min = Number(viewExMin?.value) || 0;
-        const sec = Number(viewExSec?.value) || 0;
+    saveNewViewExerciseBtn.addEventListener('click', async () => {
+        if (!viewExName || !viewExReps) return;
 
-        if (!name || reps <= 0) {
-            alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
-            return;
-        }
+        const name = viewExName.value.trim();
+        // ⭐ ИСПРАВЛЕНИЕ: Добавлена переменная desc, читаем из viewExDesc
+        const desc = viewExDesc?.value.trim() || "";
+        const reps = parseInt(viewExReps.value);
+        const min = parseInt(viewExMin?.value || 0);
+        const sec = parseInt(viewExSec?.value || 0);
 
-        const newExercise = {
-            name: name,
-            // ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Замена 'description' на 'desc' 
-            desc: desc, 
-            reps: reps,
-            min: min,
-            sec: sec,
-            sets: 1,
-            id: Date.now() 
-        };
-        
-        let w = workouts.find(x => Number(x.id) === Number(activeViewId));
-        if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
-        
-        if (!w.exercises) w.exercises = [];
-        w.exercises.push(newExercise);
-        
-        // 2. Отправка изменений на бэкенд
-        const saved = await saveWorkoutChanges(w); 
-        
-        if (saved) {
-            // Сброс состояния после сохранения
-            isAddingNewExerciseInView = false;
-            if (viewExerciseForm) viewExerciseForm.style.display = 'none';
-            
-            // Обновляем отображение списка
-            renderViewExercises(); 
-        }
-    });
+        if (!name || isNaN(reps) || reps < 1) {
+            alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
+            return;
+        }
+
+        const newExercise = {
+            // ⭐ ИСПРАВЛЕНИЕ: Используем локально определенные переменные (name, desc, reps, min, sec)
+            name: name,
+            desc: desc, // ИСПРАВЛЕНО: desc
+            reps: reps,
+            sets: 1, // ИСПРАВЛЕНО: sets
+            min: min,
+            sec: sec,
+            id: Date.now() 
+        };
+        
+        let w = workouts.find(x => Number(x.id) === Number(activeViewId));
+        if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
+        
+        if (!w.exercises) w.exercises = [];
+        w.exercises.push(newExercise);
+        
+        const saved = await saveWorkoutChanges(w);
+        
+        if (saved) {
+            // Сброс состояния после сохранения
+            isAddingNewExerciseInView = false;
+            if (viewExerciseForm) viewExerciseForm.style.display = 'none';
+            
+            // Обновляем отображение списка
+            renderViewExercises(); 
+        }
+    });
 }
 
 
@@ -940,24 +1022,8 @@ window.saveOneViewExercise = saveOneViewExercise;
 window.exitEditMode = exitEditMode; 
 // Новые глобальные функции для заголовка
 window.startTitleEdit = startTitleEdit; 
-window.saveTitleEdit = saveTitleEdit;
+window.saveTitleEdit = saveTitleEdit; 
 window.cancelTitleEdit = cancelTitleEdit; 
-// Новые глобальные функции для модального окна просмотра
-window.openView = openView;
-window.confirmDeleteWorkout = async (id) => {
-    if (!confirm('Вы уверены, что хотите удалить эту тренировку?')) return;
-    try {
-        if (await deleteWorkoutFromServer(id)) {
-            await fetchWorkouts();
-            renderWorkouts();
-            if (Number(activeViewId) === Number(id)) {
-                closeView();
-            }
-            alert('Тренировка удалена.');
-        } else {
-            alert('Не удалось удалить тренировку.');
-        }
-    } catch (e) {
-        alert('Ошибка удаления: ' + e.message);
-    }
-};
+
+/* ====== Init ====== */
+window.addEventListener('DOMContentLoaded', loadWorkouts);
