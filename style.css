@@ -4,9 +4,9 @@
 
 :root{
 
- --bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
+ --bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
 
- --accent:#8a5cff; --primary:#5d1fff; --white:#fff;
+ --accent:#8a5cff; --primary:#5d1fff; --white:#fff;
 
 }
 
@@ -34,7 +34,7 @@ border-radius:0 0 20px 20px; z-index:50; transition: transform .35s ease;
 
 .left-group{ display:flex; gap:12px; align-items:flex-end; }
 
-.back-btn{ padding:8px 12px; border-radius:12px; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:18px; opacity:.9; }
+/*.back-btn{ padding:8px 12px; border-radius:12px; border:none; background:rgba(255,255,255,0.12); color:#fff; font-size:18px; opacity:.9; }*/
 
 .profile-btn img{ width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.8); cursor:pointer; }
 
@@ -76,7 +76,7 @@ border-radius:0 0 20px 20px; z-index:50; transition: transform .35s ease;
 
 .bottom-modal{
 
- position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
+ position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
 
 backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:130; transition: bottom .38s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
 
@@ -90,7 +90,7 @@ backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:
 
 bottom: 0 !important;
 
- opacity: 1 !important;
+ opacity: 1 !important;
 
 transform: translateY(0) !important;
 
@@ -184,7 +184,7 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 
 .view-modal:not(.show) {
 
- pointer-events: none;
+ pointer-events: none;
 
 visibility: hidden; /* Добавляем, чтобы гарантировать скрытие */
 
@@ -199,8 +199,8 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 
 
 /* view body */
-
-.view-body{ display:flex; flex-direction:column; gap:10px; } 
+/* УЛУЧШЕНИЕ: Уменьшаем gap, чтобы элементы были ближе */
+.view-body{ display:flex; flex-direction:column; gap:8px; } 
 
 .view-ex{ background: rgba(255,255,255,0.04); padding:10px; border-radius:10px; }
 
@@ -232,14 +232,14 @@ display: none;
 
 .view-modal:not(.edit-mode) .view-ex .view-display {
 
- display: flex; /* Показываем только текст */
+ display: flex; /* Показываем только текст */
 
 }
 
 
 
 /* 2. РЕЖИМ РЕДАКТИРОВАНИЯ СПИСКА (edit-mode, когда ни одно упражнение не редактируется) */
-
+/* ПРАВКА: Скорректирован padding для уменьшения высоты карточки */
 .view-modal.edit-mode .view-ex:not(.is-editing) .view-edit-list-item {
 
 display: flex;
@@ -248,12 +248,47 @@ justify-content: space-between;
 
 align-items: center;
 
-padding: 10px 0;
+padding: 8px 0; /* Уменьшаем вертикальный padding */
 
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 }
 
+/* НОВЫЕ СТИЛИ: Кнопки редактирования и удаления в режиме списка */
+/* Контейнер для кнопок */
+.view-modal.edit-mode .view-edit-list-item .edit-actions {
+    display: flex;
+    gap: 8px; /* Расстояние между кнопками */
+    margin-left: 10px;
+}
+
+/* Сами кнопки (предполагаем, что у вас иконки или текст) */
+.view-modal.edit-mode .view-edit-list-item .edit-actions .edit-icon-small {
+    padding: 6px; /* Более компактный размер */
+    border-radius: 8px; /* Закругление */
+    border: none;
+    cursor: pointer;
+    background: var(--glass); /* Прозрачный фон с блюром */
+    color: var(--white);
+    font-size: 16px; /* Размер иконки/текста */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+/* Стили при наведении/клике для лучшей обратной связи */
+.view-modal.edit-mode .view-edit-list-item .edit-actions .edit-icon-small:hover {
+    background: var(--glass-2);
+}
+
+/* Отдельно стилизуем кнопку удаления для акцента */
+.view-modal.edit-mode .view-edit-list-item .edit-actions .delete-btn {
+    background: rgba(255, 59, 48, 0.2); /* Легкий красный фон */
+}
+.view-modal.edit-mode .view-edit-list-item .edit-actions .delete-btn:hover {
+    background: rgba(255, 59, 48, 0.3);
+}
 
 
 /* Скрываем кнопки общего сохранения/отмены */
@@ -272,19 +307,19 @@ display: none !important;
 
 .view-modal.edit-mode #editWorkoutBtn {
 
- display: none !important;
+ display: none !important;
 
 }
 
 
 
 /* 3. РЕЖИМ РЕДАКТИРОВАНИЯ ФОРМЫ (edit-mode + is-editing) */
-
+/* ПРАВКА: Скорректирован padding для компактности */
 .view-modal.edit-mode .view-ex.is-editing .view-edit-form {
 
 display: block; /* Показываем форму редактирования */
 
-padding: 15px 0;
+padding: 10px 0; /* Уменьшаем вертикальный padding */
 
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
@@ -292,7 +327,7 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 .view-modal.edit-mode .view-ex.is-editing input {
 
- margin-bottom: 8px;
+ margin-bottom: 8px;
 
 }
 
@@ -304,7 +339,7 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 .view-modal.edit-mode .view-ex.is-editing .view-edit-list-item {
 
- display: none;
+ display: none;
 
 }
 
@@ -344,12 +379,12 @@ background: rgba(255, 255, 255, 0.2);
 
 @media (max-width:520px){
 
-  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
+  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
 
-  .top-bar{ padding:8px 12px; height:18vh; }
+  .top-bar{ padding:8px 12px; height:18vh; }
 
-  .profile-btn img{ width:56px; height:56px; }
+  .profile-btn img{ width:56px; height:56px; }
 
-  .add-btn{ width:44px; height:44px; font-size:28px; }
+  .add-btn{ width:44px; height:44px; font-size:28px; }
 
 }
