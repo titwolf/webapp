@@ -8,10 +8,8 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
   <div class="top-bar" id="topBar">
     <div class="left-group">
-      <!-- <button class="back-btn" id="backBtn">←</button>> -->
       <div class="profile-btn" id="profileBtn">
         <img id="userAvatar" src="https://via.placeholder.com/80" alt="avatar">
       </div>
@@ -19,17 +17,14 @@
     <button class="add-btn" id="openCreateModal">+</button>
   </div>
 
-  <!-- ОСНОВНОЙ КОНТЕНТ -->
   <main class="content-wrap">
     <div class="content" id="workoutContainer">
       <p class="empty-text">Список тренировок пуст.</p>
     </div>
   </main>
 
-  <!-- БЛЮР -->
   <div class="overlay" id="overlay"></div>
 
-  <!-- МОДАЛКА СОЗДАНИЯ/РЕДАКТИРОВАНИЯ -->
   <section class="bottom-modal" id="createModal" aria-hidden="true">
     <div class="modal-inner">
       <div class="step step-title active" id="stepTitle">
@@ -74,49 +69,45 @@
     </div>
   </section>
 
-  <!-- МОДАЛКА ПРОСМОТРА ТРЕНИРОВКИ -->
   <div class="view-modal" id="viewModal" aria-hidden="true">
-    <div class="view-inner">
-            <div class="view-header">
-        <div class="modal-title-container"> 
-            <div id="viewTitleDisplayContainer" style="display: flex; align-items: center; gap: 8px;">
-                <h3 id="viewTitleDisplay">Тренировка</h3>
-                <button id="viewTitleEditBtn" class="icon-small" style="display: none;">✎</button> 
-            </div>
+    <div class="view-inner">
+      <div class="view-header">
+        <div class="modal-title-container"> 
+          <div id="viewTitleDisplayContainer" style="display: flex; align-items: center; gap: 8px;">
+            <h3 id="viewTitleDisplay">Тренировка</h3>
+            <button id="viewTitleEditBtn" class="icon-small">✎</button> 
+          </div>
 
-            <div id="viewTitleEditForm" style="display: none; align-items: center; gap: 8px; width: 100%;">
-                <input type="text" id="viewTitleInput" style="flex-grow: 1; padding: 5px; border-radius: 4px; border: 1px solid var(--color-primary-dark);">
-                <button id="viewTitleSaveBtn" class="icon-small" style="color: #6ee7b7; font-size: 1.2em;">✔</button>
-                <button id="viewTitleCancelBtn" class="icon-small" style="color: #fca5a5; font-size: 1.2em;">✕</button>
-            </div>
-        </div>
-        
-        <div class="view-actions">
-            
-            <div id="mainViewActions" style="display:flex; gap:6px;">
-                <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
-                <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
-                <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
-            </div>
-
-            <div id="editModeActions" style="display:none; gap:6px;">
-                <button class="icon-btn" id="saveViewChangesBtn" title="Сохранить изменения">✔</button>
-                <button class="icon-btn" id="cancelViewEditBtn" title="Отмена">✕</button>
-                <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button> 
-            </div>
-            
-            <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+          <div id="viewTitleEditForm" style="display: none; align-items: center; gap: 8px; width: 100%;">
+            <input type="text" id="viewTitleInput" style="flex-grow: 1; padding: 5px; border-radius: 4px; border: 1px solid var(--color-primary-dark);">
+            <button id="viewTitleSaveBtn" class="icon-small" style="color: #6ee7b7; font-size: 1.2em;">✔</button>
+            <button id="viewTitleCancelBtn" class="icon-small" style="color: #fca5a5; font-size: 1.2em;">✕</button>
+          </div>
         </div>
-      </div>
-            <div class="view-body" id="viewBody"></div>
-            <div class="view-edit-controls" style="display:none;"> 
-          <button class="btn primary" id="saveViewChangesBtn">Сохранить изменения</button>
-          <button class="btn ghost" id="cancelViewEditBtn">Отмена</button>
-      </div>
-    </div>
-  </div>
+        
+        <div class="view-actions">
+          <div id="mainViewActions" style="display:flex; gap:6px;">
+            <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
+            <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
+            <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
+          </div>
 
-  <!-- МОДАЛКА ПРОФИЛЯ -->
+          <div id="editModeActions" style="display:none; gap:6px;">
+            <button class="icon-btn" id="addExerciseToViewBtn" title="Добавить упражнение">+</button>
+            <button class="icon-btn" id="saveViewChangesBtn" title="Сохранить изменения">✔</button>
+            <button class="icon-btn" id="cancelViewEditBtn" title="Отмена">✕</button>
+            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button> 
+          </div>
+          
+          <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+        </div>
+      </div>
+
+      <div class="view-body" id="viewBody"></div>
+
+    </div>
+  </div>
+
   <div class="view-modal" id="profileModal" aria-hidden="true">
     <div class="view-inner">
       <div class="view-header">

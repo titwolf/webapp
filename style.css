@@ -145,7 +145,8 @@ flex: 1; /* Возвращаем flex: 1 для исходного дизайн�
     background: rgba(18,16,26,0.98); 
     backdrop-filter: blur(12px); 
     border-radius:14px; 
-    padding:14px; 
+    /* ⭐ ФИКС: Уменьшен padding модального окна */
+    padding:10px; 
     transform:translateY(12px); 
     opacity:0; 
     transition: all .22s ease; 
@@ -164,12 +165,13 @@ visibility: hidden;
     display:flex; 
     justify-content:space-between; 
     align-items:center; 
-    gap:8px; /* Уменьшен горизонтальный отступ */
-    margin-bottom:8px; /* Уменьшен вертикальный отступ */
+    /* ⭐ ФИКС: Уменьшен gap и margin-bottom */
+    gap:6px; 
+    margin-bottom:6px; 
 }
 .view-actions{ 
     display:flex; 
-    gap: 4px; /* Уменьшен отступ между кнопками */
+    gap: 4px; 
     align-items: center; 
     flex-shrink: 0; 
 }
@@ -183,9 +185,9 @@ visibility: hidden;
     margin: 0; 
     padding: 0; 
     line-height: 1.2;
-    font-size: clamp(16px, 5vw, 24px); /* Адаптивный размер текста */
-    flex-shrink: 1; /* Позволяем тексту сжиматься */
-    min-width: 0; /* Разрешаем Flex-элементу сжиматься */
+    font-size: clamp(16px, 5vw, 24px); 
+    flex-shrink: 1; 
+    min-width: 0; 
 }
 
 /* ⭐ ФИКС 2.2: Адаптивность контейнеров заголовка */
@@ -197,7 +199,7 @@ visibility: hidden;
 #viewTitleDisplayContainer {
     display: flex; 
     align-items: center; 
-    gap: 8px;
+    gap: 6px; /* Уменьшен gap */
     flex-grow: 1; 
     min-width: 0; 
 }
@@ -232,11 +234,12 @@ visibility: hidden;
 /* КОНЕЦ НОВЫХ СТИЛЕЙ */
 
 
-/* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
-.view-modal:not(.edit-mode) #saveViewChangesBtn,
-.view-modal:not(.edit-mode) #cancelViewEditBtn {
+/* ⭐ ФИКС 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, которые вы попросили убрать */
+.view-modal.edit-mode #saveViewChangesBtn,
+.view-modal.edit-mode #cancelViewEditBtn {
 display: none !important;
 }
+
 
 /* ⭐ Компактные кнопки-иконки */
 .icon-btn{ 
@@ -258,13 +261,23 @@ display: none !important;
 }
 
 .icon-btn:hover {
-    background: rgba(255,255,255,0.12); 
+  background: rgba(255,255,255,0.12); 
 }
 
 
 /* view body */
-.view-body{ display:flex; flex-direction:column; gap:8px; } /* Уменьшен отступ между карточками упражнений */
-.view-ex{ background: rgba(255,255,255,0.04); padding:0; border-radius:10px; }
+.view-body{ 
+    display:flex; 
+    flex-direction:column; 
+    /* ⭐ ФИКС: Уменьшен gap между карточками упражнений */
+    gap:6px; 
+}
+.view-ex{ 
+    background: rgba(255,255,255,0.04); 
+    padding:0; 
+    /* ⭐ ФИКС: Уменьшен радиус для компактности */
+    border-radius:8px; 
+}
 
 
 /* Общие правила: по умолчанию скрываем все режимы, кроме просмотра */
@@ -277,15 +290,17 @@ display: none;
 /* 1. РЕЖИМ ПРОСМОТРА (по умолчанию) */
 .view-modal:not(.edit-mode) .view-ex .view-display {
 display: flex; 
-padding: 8px 10px; /* Уменьшен padding */
+/* ⭐ ФИКС: Уменьшен padding */
+padding: 6px 10px; 
 flex-direction: column; 
 }
 .view-modal:not(.edit-mode) .view-ex .view-display div[style*="margin-top:4px"] {
-    margin-top: 2px !important; /* Уменьшаем отступ для описания */
+    margin-top: 2px !important; 
 }
 .view-modal:not(.edit-mode) .view-ex .view-display div[style*="color:rgba(255,255,255,0.7)"] {
-    margin-top: 4px !important; /* Отступ для мета-информации */
-    font-size: 14px;
+    /* ⭐ ФИКС: Уменьшен отступ и шрифт для мета-информации */
+    margin-top: 2px !important; 
+    font-size: 13px;
 }
 
 /* 2. РЕЖИМ РЕДАКТИРОВАНИЯ СПИСКА */
@@ -293,7 +308,8 @@ flex-direction: column;
 display: flex;
 justify-content: space-between;
 align-items: center;
-padding: 6px 10px; /* Уменьшен padding */
+/* ⭐ ФИКС: Уменьшен padding */
+padding: 5px 8px; 
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -308,7 +324,7 @@ display: none !important;
 }
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small {
 background: rgba(255,255,255,0.1); 
-padding: 6px 8px; 
+padding: 4px 6px; /* ⭐ Уменьшен padding кнопок-иконок */
 border-radius: 6px;
 font-size: 14px;
 line-height: 1; 
@@ -331,8 +347,8 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .view-modal.edit-mode .view-ex.is-editing input {
-margin-bottom: 8px;
-padding: 10px 12px; /* Уменьшен padding для полей ввода */
+margin-bottom: 6px; /* Уменьшен отступ под полем ввода */
+padding: 10px 12px; 
 }
 
 /* ⭐ ФИКС 3.4: Адаптивность кнопок сохранения/отмены в форме упражнения */
@@ -344,7 +360,7 @@ padding: 10px 12px; /* Уменьшен padding для полей ввода */
     margin-top: 10px;
 }
 .view-modal.edit-mode .view-ex.is-editing .view-edit-form .row.end .btn { 
-    flex-basis: 50%; /* Делим пространство поровну */
+    flex-basis: 50%; 
     min-width: 0; 
 }
 /* КОНЕЦ ФИКСА 3.4 */
@@ -362,7 +378,7 @@ width: 100%;
 background: rgba(255, 255, 255, 0.1);
 color: #fff;
 border: none;
-padding: 12px;
+padding: 10px; /* Уменьшен padding */
 border-radius: 8px;
 font-weight: 600;
 }
@@ -373,8 +389,8 @@ background: rgba(255, 255, 255, 0.2);
 
 /* responsive */
 @media (max-width:520px){
-  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
-  .top-bar{ padding:8px 12px; height:18vh; }
-  .profile-btn img{ width:56px; height:56px; }
-  .add-btn{ width:44px; height:44px; font-size:28px; }
+  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
+  .top-bar{ padding:8px 12px; height:18vh; }
+  .profile-btn img{ width:56px; height:56px; }
+  .add-btn{ width:44px; height:44px; font-size:28px; }
 }
