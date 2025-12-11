@@ -86,8 +86,6 @@ let tempExercises = [];
 let editingWorkoutId = null;
 let activeViewId = null;
 let editingViewExerciseIndex = null; 
-// ⭐ НОВОЕ: Флаг для отслеживания, откуда мы пришли в CreateModal
-let cameFromViewModal = false;
 
 /* ====== API Helper ====== */
 async function api(path, method = 'GET', data = null) {
@@ -185,21 +183,6 @@ function hideOverlay() {
     overlay.classList.remove('show'); 
 }
 
-// Новая функция для закрытия ProfileModal (для использования в openCreate)
-function closeProfileModal(hideOverlayFlag = true) {
-    if (hideOverlayFlag) hideOverlay();
-    profileModal.classList.remove('show');
-    profileModal.setAttribute('aria-hidden', 'true');
-}
-
-function closeCreate() {
-    hideOverlay();
-    createModal.classList.remove('show'); 
-    createModal.setAttribute('aria-hidden', 'true');
-    editingWorkoutId = null;
-    cameFromViewModal = false; // Сброс флага
-}
-
 /**
  * Открывает модальное окно создания/редактирования тренировки.
  * @param {number|null} editId ID тренировки для редактирования, или null для создания.
@@ -214,18 +197,13 @@ function openCreate(editId = null, skipTitleStep = false) {
     createModal.classList.add('show'); 
     createModal.setAttribute('aria-hidden', 'false');
 
-    // Сбрасываем форму упражнения и поля ввода
-    exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
-    exerciseForm.classList.remove('active'); 
+    exerciseForm.classList.remove('active'); // Сбрасываем форму, чтобы начать чисто
 
     inputTrainingName.value = '';
     currentTempTitle = '';
     tempExercises = [];
     editingWorkoutId = null; 
     
-    // ⭐ НОВОЕ: Устанавливаем флаг, если пришли из ViewModal для добавления упражнения
-    cameFromViewModal = skipTitleStep && editId !== null;
-
     let initialFocus = inputTrainingName;
 
     if (editId !== null) {
@@ -245,23 +223,29 @@ function openCreate(editId = null, skipTitleStep = false) {
                 sets: e.sets ?? 1
             }));
 
-            // !!! ИЗМЕНЕНИЕ: Если пришли из ViewModal для добавления упр. (skipTitleStep=true)
-            if (cameFromViewModal) { 
+            // !!! ИЗМЕНЕНИЕ: Если вызываем openCreate из ViewModal (для добавления упр.)
+            if (skipTitleStep || viewModal.classList.contains('edit-mode')) {
                 trainingTitleDisplay.textContent = currentTempTitle;
                 stepTitle.classList.remove('active');
                 stepExercises.classList.add('active');
                 
-                // ⭐ ГЛАВНОЕ ИСПРАВЛЕНИЕ 1: Активируем форму упражнения сразу, минуя список
-                exerciseForm.classList.add('active'); 
-                initialFocus = exName; // Фокусируемся на первом поле формы упражнения
+                // ⭐ НОВОЕ ИЗМЕНЕНИЕ: Активируем форму упражнения сразу, минуя список
+                // Это нужно только если мы пришли из ViewModal для добавления нового упражнения.
+                // Если мы просто редактируем, форма по умолчанию должна быть скрыта, чтобы видеть список.
+                if (skipTitleStep) { 
+                    exerciseForm.classList.add('active'); 
+                    initialFocus = exName; // Фокусируемся на первом поле формы упражнения
+                } else {
+                    exerciseForm.classList.remove('active');
+                    initialFocus = toggleExerciseFormBtn; // Фокусируемся на кнопке "Добавить"
+                }
+
             } else {
-                // Обычное редактирование (через кнопку Edit на главной)
                 stepTitle.classList.add('active');
                 stepExercises.classList.remove('active');
             }
         }
     } else {
-        // Создание новой тренировки
         stepTitle.classList.add('active');
         stepExercises.classList.remove('active');
     }
@@ -279,24 +263,20 @@ function openCreate(editId = null, skipTitleStep = false) {
     }, 150);
 }
 
+function closeCreate() {
+    hideOverlay();
+    createModal.classList.remove('show'); 
+    createModal.setAttribute('aria-hidden', 'true');
+    editingWorkoutId = null;
+}
+
 /* ====== Exercises (Create Modal) - Функции не изменились ====== */
 toggleExerciseFormBtn.addEventListener('click', () => {
-    // В режиме добавления упражнения (cameFromViewModal) этой кнопки нет.
     exerciseForm.classList.toggle('active');
     if (exerciseForm.classList.contains('active')) exName.focus();
 });
 
 cancelExerciseBtn.addEventListener('click', () => {
-    // Если пришли из ViewModal, кнопка "Отмена" должна закрыть CreateModal
-    if (cameFromViewModal) {
-        closeCreate();
-        openView(activeViewId, false); // Возвращаемся в ViewModal (не показывая снова оверлей)
-        viewModal.classList.add('edit-mode'); // И в режим редактирования списка
-        renderViewExercises();
-        return;
-    }
-
-    // Стандартный функционал (отмена ввода данных)
     exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
     exerciseForm.classList.remove('active');
 });
@@ -312,58 +292,28 @@ saveExerciseBtn.addEventListener('click', () => {
 
     const editIndex = saveExerciseBtn.dataset.editIndex;
     if (editIndex !== undefined && editIndex !== '') {
-        // Редактирование существующего упражнения
-        tempExercises[+editIndex] = { name, desc, reps, min, sec, sets: 1 };
+        // ИСПРАВЛЕНИЕ: если редактируем из ViewModal (добавили через openCreate), то нужно
+        // обновить сам объект тренировки и сохранить его, а не просто tempExercises.
+        if (editingWorkoutId !== null) {
+             const w = workouts.find(x => Number(x.id) === Number(editingWorkoutId));
+             if (w) {
+                // Если мы в режиме редактирования существующей тренировки через CreateModal, 
+                // то мы редактируем tempExercises
+                tempExercises[+editIndex] = { name, desc, reps, min, sec, sets: 1 };
+             }
+        } else {
+            tempExercises[+editIndex] = { name, desc, reps, min, sec, sets: 1 };
+        }
         delete saveExerciseBtn.dataset.editIndex;
     } else {
-        // Добавление нового упражнения
         tempExercises.push({ name, desc, reps, min, sec, sets: 1 });
     }
 
-    // Если пришли из ViewModal, сохраняем тренировку сразу и возвращаемся
-    if (cameFromViewModal) {
-        // Здесь мы уже имеем updated tempExercises.
-        // Нужно обновить оригинальную тренировку и вернуться в ViewModal.
-        saveAndReturnFromCreateModal();
-        return;
-    }
-
-    // Стандартный функционал (продолжение редактирования/создания в CreateModal)
     exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
     exerciseForm.classList.remove('active');
     renderExerciseCards();
     updateSaveTrainingBtn();
 });
-
-// ⭐ НОВАЯ ФУНКЦИЯ ДЛЯ ОБРАБОТКИ СОХРАНЕНИЯ И ВОЗВРАТА ИЗ CREATE MODAL
-async function saveAndReturnFromCreateModal() {
-    const payload = {
-        id: editingWorkoutId,
-        user_id: tgUser.id,
-        title: currentTempTitle,
-        exercises: tempExercises
-    };
-
-    try {
-        await saveWorkoutToServer(payload);
-        
-        // Обновляем список workouts на главной
-        await loadWorkouts(); 
-
-        closeCreate(); // Закрываем CreateModal
-        
-        // Возвращаемся в ViewModal в режиме редактирования списка
-        if (activeViewId) {
-            openView(activeViewId, false); // Открываем ViewModal, не показывая оверлей (он уже открыт)
-            viewModal.classList.add('edit-mode'); 
-            renderViewExercises();
-        }
-
-    } catch (err) {
-        console.error("saveAndReturnFromCreateModal error:", err);
-        alert("Ошибка при сохранении упражнения. Посмотрите консоль.");
-    }
-}
 
 /* ====== Switching steps ====== */
 toExercisesBtn.addEventListener('click', () => {
@@ -377,35 +327,14 @@ toExercisesBtn.addEventListener('click', () => {
     toggleExerciseFormBtn.focus();
 });
 
-// ⭐ ГЛАВНОЕ ИСПРАВЛЕНИЕ 2: Обработчик кнопки "Назад" (для CreateModal)
 backToTitleBtn.addEventListener('click', () => {
-    if (cameFromViewModal) {
-        // Если пришли из ViewModal, закрываем CreateModal и возвращаемся в ViewModal
-        closeCreate();
-        // openView(activeViewId, false); // ViewModal уже был открыт, но был закрыт openCreate.
-        // Нужно его открыть снова и активировать режим редактирования.
-        if (activeViewId) {
-            openView(activeViewId, false); // Открываем ViewModal, не показывая оверлей
-            viewModal.classList.add('edit-mode');
-            renderViewExercises();
-        }
-    } else {
-        // Стандартный путь: возврат на шаг ввода названия
-        stepTitle.classList.add('active');
-        stepExercises.classList.remove('active');
-    }
+    stepTitle.classList.add('active');
+    stepExercises.classList.remove('active');
 });
 
 /* ====== Save workout (Create Modal) ====== */
 saveTrainingBtn.addEventListener('click', async () => {
     if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
-    
-    // Если пришли из ViewModal, мы уже сохранили в saveExerciseBtn
-    if (cameFromViewModal) {
-        closeCreate();
-        return;
-    }
-
     const payload = {
         id: editingWorkoutId || 0,
         user_id: tgUser.id,
@@ -422,8 +351,13 @@ saveTrainingBtn.addEventListener('click', async () => {
             if (index > -1) workouts[index] = savedWorkout;
 
             if (activeViewId === editingWorkoutId && viewModal.classList.contains('show')) {
+                // Обновляем название в ViewModal 
                 if (viewTitleDisplay) viewTitleDisplay.textContent = savedWorkout.title; 
+                // !!! ИСПРАВЛЕНИЕ: Если мы в режиме редактирования в ViewModal, то после сохранения
+                // из CreateModal, нужно перерисовать упражнения в ViewModal и выйти из режима
+                // редактирования в ViewModal, если это был режим добавления/редактирования упражнений.
                 if (viewModal.classList.contains('edit-mode')) {
+                    // Если мы пришли сюда из ViewModal для добавления нового упражнения
                     exitEditMode(); 
                     renderViewExercises();
                 } else {
@@ -465,12 +399,10 @@ function renderExerciseCards() {
     tempExercises.forEach((ex, idx) => {
         const div = document.createElement('div');
         div.className = 'exercise-card';
-        // Улучшаем отображение в модалке создания/редактирования
-        const timeDisplay = ex.min > 0 || ex.sec > 0 ? `${ex.min}м ${ex.sec}с` : '';
         div.innerHTML = `
             <div class="ex-card-head">
                 <div class="ex-title">${ex.name}</div>
-                <div class="ex-meta">${ex.reps} повт ${timeDisplay ? `• ${timeDisplay}` : ''}</div>
+                <div class="ex-meta">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
             </div>
             <div class="ex-actions">
                 <button class="icon-small" onclick="editExercise(${idx})">✎</button>
@@ -502,10 +434,19 @@ function updateSaveTrainingBtn() {
 
 /* ====== Profile - Функции не изменились ====== */
 profileBtn.addEventListener('click', getProfile);
+
+// Новая функция для закрытия ProfileModal (для использования в openCreate)
+function closeProfileModal(hideOverlayFlag = true) {
+    if (hideOverlayFlag) hideOverlay();
+    profileModal.classList.remove('show');
+    profileModal.setAttribute('aria-hidden', 'true');
+}
+
 closeProfileBtn.addEventListener('click', () => closeProfileModal(true));
 
 saveProfileBtn.addEventListener('click', async () => {
     await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value });
+    // alert('Настройки сохранены'); // Убрал alert, чтобы не мешал в Telegram WebApp
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
     closeProfileModal(true);
 });
@@ -538,28 +479,33 @@ async function saveWorkoutChanges(workout) {
     }
 }
 
-// ⭐ ЛОГИКА РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ (Осталась без изменений)
+// ⭐ ЛОГИКА РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ
 
 function startTitleEdit() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
     if (!w) return;
     
     if (viewTitleEditForm && viewTitleInput && viewTitleDisplayContainer) {
+        // Показываем форму и скрываем отображение
         viewTitleEditForm.style.display = 'flex';
         viewTitleDisplayContainer.style.display = 'none';
         
         viewTitleInput.value = w.title;
         viewTitleInput.focus();
         
+        // Перерисовываем упражнения, чтобы убрать кнопки редактирования рядом
         renderViewExercises();
     }
 }
 
 function cancelTitleEdit() {
     if (viewTitleEditForm && viewTitleDisplayContainer) {
+        // Скрываем форму и показываем отображение
         viewTitleEditForm.style.display = 'none';
         viewTitleDisplayContainer.style.display = 'flex';
         
+        // Перерисовываем упражнения, чтобы восстановить видимость кнопки-карандаша 
+        // (если мы в edit-mode)
         renderViewExercises(); 
     }
 }
@@ -576,18 +522,21 @@ async function saveTitleEdit() {
     if (!w) return;
     
     w.title = newTitle;
-    w.name = newTitle; 
+    w.name = newTitle; // Обновляем оба поля для консистентности
     
+    // Обновляем отображаемый текст сразу
     if(viewTitleDisplay) viewTitleDisplay.textContent = newTitle; 
     
+    // Сохраняем изменения на сервере
     await saveWorkoutChanges(w); 
     
-    cancelTitleEdit(); 
+    cancelTitleEdit(); // Выходим из режима редактирования названия
 }
 
 // ⭐ КОНЕЦ ЛОГИКИ РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ
 
 function startEditViewExercise(idx) {
+    // Проверка, что мы не редактируем сейчас название
     if (viewTitleEditForm && viewTitleEditForm.style.display === 'flex') return;
 
     editingViewExerciseIndex = idx;
@@ -640,7 +589,7 @@ async function saveOneViewExercise(idx) {
 function exitEditMode() {
     viewModal.classList.remove('edit-mode');
     editingViewExerciseIndex = null;
-    cancelTitleEdit(); 
+    cancelTitleEdit(); // Добавлено: Сброс формы редактирования названия при выходе из режима
     renderViewExercises(); 
 }
 
@@ -656,17 +605,20 @@ function renderViewExercises() {
     // Управление отображением кнопок в заголовке
     if (mainViewActions && editModeActions) {
         mainViewActions.style.display = isEditMode ? 'none' : 'flex'; 
+        // В режиме редактирования, кнопки видны только если не редактируется название
         editModeActions.style.display = isEditMode && !isTitleEditing ? 'flex' : 'none'; 
     }
     
-    // Управление видимостью кнопки-карандаша для названия
+    // ⭐ Управление видимостью кнопки-карандаша для названия
     if (viewTitleEditBtn) {
+        // Кнопка-карандаш видна, только если мы в режиме редактирования И НЕ редактируем сейчас форму названия
         viewTitleEditBtn.style.display = (isEditMode && !isTitleEditing) ? 'block' : 'none'; 
     }
     if (viewTitleDisplay) {
         viewTitleDisplay.textContent = w.title || w.name || 'Без названия';
     }
     if (viewTitleDisplayContainer) {
+        // Контейнер отображения виден, если мы не редактируем форму названия
         viewTitleDisplayContainer.style.display = isTitleEditing ? 'none' : 'flex';
     }
 
@@ -677,21 +629,19 @@ function renderViewExercises() {
         
         const isEditingThisExercise = isEditMode && editingViewExerciseIndex === idx;
 
+        // Если редактируется название, не показываем кнопки редактирования упражнений
         if (isTitleEditing) {
              div.classList.remove('is-editing');
         } else if (isEditingThisExercise) {
              div.classList.add('is-editing');
         }
-        
-        // ⭐ ГЛАВНОЕ ИСПРАВЛЕНИЕ 3: Улучшение отображения карточек упражнений
-        const meta = `${ex.reps} повт ${ex.min > 0 || ex.sec > 0 ? `• ${ex.min}м ${ex.sec}с` : ''}`;
-        
+
         // --- 1. БЛОК ОТОБРАЖЕНИЯ (только текст) ---
         const displayBlock = `
             <div class="view-display">
                 <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
-                ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8);font-size:0.9em;">${ex.desc}</div>` : ''}
-                <div style="color:rgba(255,255,255,0.7);margin-top:4px;">${meta}</div>
+                ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
+                <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
             </div>`;
         
         // --- 2. БЛОК РЕДАКТИРОВАНИЯ СПИСКА (кнопки) ---
@@ -721,35 +671,27 @@ function renderViewExercises() {
                 </div>
             </div>`;
 
+        // Отображаем либо блок редактирования, либо блок просмотра
         if (isEditMode && !isTitleEditing) {
             if (isEditingThisExercise) {
+                // Если мы редактируем это упражнение, показываем форму
                  div.innerHTML = editForm;
             } else {
-                // В режиме редактирования списка показываем имя и кнопки
-                // Добавляем мета-информацию, чтобы карточки были похожи на карточки в CreateModal
-                div.innerHTML = `
-                    <div class="view-ex-card-wrapper">
-                        <div style="font-weight:600; flex-grow:1;">${idx + 1}. ${ex.name}</div>
-                        <div style="color:rgba(255,255,255,0.7); font-size: 0.8em; margin-bottom: 5px;">${meta}</div>
-                        <div class="ex-actions" style="display:flex; gap:8px;">
-                            <button class="icon-small" onclick="startEditViewExercise(${idx})">✎</button>
-                            <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
-                        </div>
-                    </div>
-                `;
-                div.className = 'view-ex edit-mode-list-item'; // Новый класс для стилизации списка редактирования
+                // Если мы в режиме редактирования, но не редактируем это упражнение, показываем кнопки
+                div.innerHTML = editListBlock; 
             }
         } else {
-            // Режим просмотра (улучшенная карточка)
+            // Если мы не в режиме редактирования, показываем только блок отображения
             div.innerHTML = displayBlock;
         }
 
         viewBody.appendChild(div);
     });
     
-    // Кнопка "Добавить упражнение"
+    // Если в режиме редактирования списка (и форма одного упражнения не открыта И не редактируется название), добавляем кнопку "Добавить упражнение"
     if (isEditMode && editingViewExerciseIndex === null && !isTitleEditing) {
         const addBtn = document.createElement('div');
+        // ⭐ ИЗМЕНЕНИЕ: Добавил true в openCreate(w.id, true) для пропуска шага названия
         addBtn.innerHTML = `<button class="btn add-ex" onclick="openCreate(${w.id}, true)">+ Добавить упражнение</button>`;
         addBtn.style.marginTop = '15px';
         viewBody.appendChild(addBtn);
@@ -770,8 +712,10 @@ function openView(id, showOverlayFlag = true) {
     editingViewExerciseIndex = null; 
     
     const w = workouts.find(x => Number(x.id) === Number(id));
+    // Устанавливаем название при открытии (используем новый ID)
     if(viewTitleDisplay) viewTitleDisplay.textContent = w?.title || w?.name || 'Без названия';
     
+    // Сбрасываем видимость формы редактирования названия
     if (viewTitleEditForm) viewTitleEditForm.style.display = 'none';
     
     renderViewExercises();
@@ -787,7 +731,7 @@ function closeView(hideOverlayFlag = true) {
     editingViewExerciseIndex = null; 
     if (hideOverlayFlag) hideOverlay();
     activeViewId = null;
-    cancelTitleEdit(); 
+    cancelTitleEdit(); // Гарантируем, что форма названия скрыта
 }
 
 /* ====== Event listeners ====== */
@@ -796,15 +740,11 @@ closeCreateModal.addEventListener('click', closeCreate);
 
 // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КЛИКА ПО ОВЕРЛЕЮ
 overlay.addEventListener('click', () => {
-    // Внимание: если cameFromViewModal = true, закрытие оверлея может быть нежелательным,
-    // так как мы переходим между модалками. Однако, если пользователь кликнул вне модалок, 
-    // скорее всего, он хочет закрыть текущий процесс.
     if (viewModal.classList.contains('show')) {
         closeView();
     } else if (profileModal.classList.contains('show')) {
         closeProfileModal();
     } else if (createModal.classList.contains('show')) { 
-        // Здесь мы можем решить, что если мы в CreateModal, просто закрываем ее.
         closeCreate();
     }
 });
@@ -834,13 +774,21 @@ deleteWorkoutBtn.addEventListener('click', async () => {
 });
 closeViewBtn.addEventListener('click', closeView);
 
+//НОВАЯ КНОПКА: Выход из режима редактирования
 if (exitEditModeBtn) exitEditModeBtn.addEventListener('click', exitEditMode);
+
+// ОТМЕНА РЕДАКТИРОВАНИЯ (Теперь только выход из общего режима редактирования списка)
 cancelViewEditBtn.addEventListener('click', exitEditMode); 
 
+// СОХРАНЕНИЕ ИЗМЕНЕНИЙ В МОДАЛКЕ ПРОСМОТРА
 saveViewChangesBtn.addEventListener('click', async () => {
+    // В режиме редактирования упражнения сохраняются по отдельной кнопке "Сохранить упражнение"
+    // А название сохраняется по кнопке "Сохранить" в форме названия.
+    // Эта кнопка остается, но ее функционал меняется на информационный, если вы хотите ее оставить.
     alert("Кнопка 'Сохранить изменения' теперь не используется. Сохранение происходит автоматически при редактировании названия или при нажатии 'Сохранить упражнение'.");
 });
 
+// ⭐ СЛУШАТЕЛИ СОБЫТИЙ ДЛЯ РЕДАКТИРОВАНИЯ НАЗВАНИЯ
 if (viewTitleEditBtn) viewTitleEditBtn.addEventListener('click', startTitleEdit);
 if (viewTitleSaveBtn) viewTitleSaveBtn.addEventListener('click', saveTitleEdit);
 if (viewTitleCancelBtn) viewTitleCancelBtn.addEventListener('click', cancelTitleEdit);
@@ -854,10 +802,10 @@ window.cancelEditViewExercise = cancelEditViewExercise;
 window.deleteViewExercise = deleteViewExercise; 
 window.saveOneViewExercise = saveOneViewExercise; 
 window.exitEditMode = exitEditMode; 
+// Новые глобальные функции для заголовка
 window.startTitleEdit = startTitleEdit; 
 window.saveTitleEdit = saveTitleEdit; 
 window.cancelTitleEdit = cancelTitleEdit; 
-window.closeProfileModal = closeProfileModal; // Сделаем глобальной для чистоты
 
 /* ====== Init ====== */
 window.addEventListener('DOMContentLoaded', loadWorkouts);
