@@ -69,15 +69,15 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 
 /* layout helpers */
 .row{ 
-    display:flex; 
-    gap:10px; 
-    align-items: center; /* ⭐ ДОБАВЛЕНО: Предотвращает вертикальное растяжение кнопок */
+display:flex; 
+gap:10px; 
+align-items: center; /* ⭐ ДОБАВЛЕНО: Предотвращает вертикальное растяжение кнопок */
 }
 .row.end{ justify-content:flex-end; }
 
 .row .btn{ 
-    flex-grow: 1; /* ⭐ ИЗМЕНЕНО: Используем flex-grow для горизонтального заполнения, 
-                  вместо комплексного flex: 1, чтобы избежать неожиданных эффектов */
+ flex-grow: 1; /* ⭐ ИЗМЕНЕНО: Используем flex-grow для горизонтального заполнения, 
+                  вместо комплексного flex: 1, чтобы избежать неожиданных эффектов */
 }
 
 /* exercise form */
@@ -113,22 +113,48 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 }
 
 .view-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
-.view-actions{ display:flex; gap:8px; }
+.view-actions{ 
+    display:flex; 
+    gap:8px; 
+    align-items: center; /* ⭐ ИСПРАВЛЕНИЕ 2.1: Гарантирует вертикальное центрирование */
+}
 
 /* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
 .view-modal:not(.edit-mode) #saveViewChangesBtn,
 .view-modal:not(.edit-mode) #cancelViewEditBtn {
-    display: none !important;
+display: none !important;
 }
 
-/* Стили для всех кнопок-иконок в header/действиях */
-.icon-btn{ background:rgba(255,255,255,0.04); color:#fff; padding:8px 10px; border-radius:10px; border:none; cursor:pointer; }
+/* ⭐ ИСПРАВЛЕНИЕ 2.2: Стили для всех кнопок-иконок в header/действиях (фиксированный размер) */
+.icon-btn{ 
+    background:rgba(255,255,255,0.08); /* Чуть более заметный фон */
+    color:#fff; 
+    
+    width: 36px; /* Фиксированная ширина */
+    height: 36px; /* Фиксированная высота (делает кнопку квадратной) */
+    padding: 0; /* Убираем padding, т.к. задали явную высоту/ширину */
+    
+    display: flex; /* Делаем flex, чтобы центрировать иконку/текст внутри */
+    align-items: center;
+    justify-content: center;
+    
+    border-radius: 10px; /* Скругленные углы */
+    border:none; 
+    cursor:pointer; 
+    font-size: 18px; /* Размер иконки */
+    line-height: 1; /* Для лучшего центрирования */
+    transition: background 0.15s ease;
+}
+
+.icon-btn:hover {
+    background: rgba(255,255,255,0.12); /* Эффект при наведении */
+}
 
 
 /* view body */
 .view-body{ display:flex; flex-direction:column; gap:8px; }
 /* УЛУЧШЕНИЕ 2.1: Убираем padding у view-ex, чтобы он не добавлял лишней высоты, 
-   т.к. мы будем padding внутри view-edit-list-item */
+   т.к. мы будем padding внутри view-edit-list-item */
 .view-ex{ background: rgba(255,255,255,0.04); padding:0; border-radius:10px; }
 
 
@@ -169,21 +195,21 @@ display: none !important;
 
 /* Стилизация кнопок редактирования/удаления в режиме списка */
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small {
-    /* Наследуем базовые icon-small, но делаем их чуть более заметными */
-    background: rgba(255,255,255,0.1); /* Чуть темнее */
-    padding: 6px 8px; /* Компактность */
-    border-radius: 6px;
-    font-size: 14px;
-    line-height: 1; /* Для лучшего центрирования иконки/текста */
+/* Наследуем базовые icon-small, но делаем их чуть более заметными */
+background: rgba(255,255,255,0.1); /* Чуть темнее */
+padding: 6px 8px; /* Компактность */
+border-radius: 6px;
+font-size: 14px;
+line-height: 1; /* Для лучшего центрирования иконки/текста */
 }
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small:hover {
-    background: rgba(255,255,255,0.15);
+background: rgba(255,255,255,0.15);
 }
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"] {
-    background: rgba(255, 59, 48, 0.2); /* Красный акцент для удаления */
+background: rgba(255, 59, 48, 0.2); /* Красный акцент для удаления */
 }
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"]:hover {
-    background: rgba(255, 59, 48, 0.3);
+background: rgba(255, 59, 48, 0.3);
 }
 
 /* 3. РЕЖИМ РЕДАКТИРОВАНИЯ ФОРМЫ (edit-mode + is-editing) */
