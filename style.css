@@ -102,9 +102,24 @@ flex: 1; /* Возвращаем flex: 1 для исходного дизайн�
 
 /* view modal */
 .view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:120; /* Вернули z-index из первого блока */ pointer-events:none; }
-.view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:14px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.view-inner{ 
+    width:min(720px,94%); 
+    max-height:86vh; 
+    overflow:auto; 
+    background: rgba(18,16,26,0.98); 
+    backdrop-filter: blur(12px); 
+    border-radius:14px; 
+    padding:14px; /* ⭐ УМЕНЬШЕНО для компактности */
+    transform:translateY(12px); 
+    opacity:0; 
+    transition: all .22s ease; 
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6); 
+}
+/* ⭐ ФИКС: Удаляем браузерные отступы у заголовка H3 (уже было, оставляем) */
 .view-header h3 {
-    margin: 0; /* Удаляем браузерные отступы у заголовка H3 */
+    margin: 0; 
+    padding: 0; /* ⭐ НОВОЕ: Убеждаемся, что нет внутреннего padding */
+    line-height: 1.2; /* ⭐ НОВОЕ: Устанавливаем разумную высоту строки */
 }
 .view-modal.show{ pointer-events:auto; }
 .view-modal.show .view-inner{ transform:translateY(0); opacity:1; }
@@ -117,13 +132,13 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 .view-header{ 
     display:flex; 
     justify-content:space-between; 
-    align-items:center; 
+    align-items:center; /* ⭐ ГЛАВНОЕ: Гарантирует вертикальное центрирование */
     gap:12px; 
     margin-bottom:12px; 
 }
 .view-actions{ 
     display:flex; 
-    gap: 6px; /* Отступ между элементами view-actions (группами и крестиком) */
+    gap: 6px; 
     align-items: center; 
     flex-shrink: 0; 
 }
@@ -131,6 +146,28 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 .view-actions #closeViewBtn {
     margin-left: auto;
 }
+
+/* ⭐ НОВЫЕ ФИКСЫ АДАПТИВНОСТИ ЗАГОЛОВКА */
+.modal-title-container {
+    flex-grow: 1; 
+    min-width: 0; 
+    padding: 0; /* ⭐ ФИКС: Обнуляем padding у родителя h3 */
+}
+#viewTitleDisplayContainer {
+    display: flex; 
+    align-items: center; /* ⭐ ФИКС: Центрирует h3 и иконку "✎" */
+    gap: 8px;
+    flex-grow: 1; 
+    min-width: 0; 
+    overflow: hidden; 
+    white-space: nowrap;
+}
+#viewTitleDisplay {
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+/* КОНЕЦ НОВЫХ ФИКСОВ АДАПТИВНОСТИ ЗАГОЛОВКА */
+
 
 /* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
 .view-modal:not(.edit-mode) #saveViewChangesBtn,
@@ -142,16 +179,13 @@ display: none !important;
 .icon-btn{ 
     background:rgba(255,255,255,0.08); 
     color:#fff; 
-    
     width: 36px; /* Гарантированная квадратная форма */
     min-width: 36px; /* Защита от сжатия */
     height: 36px; 
     padding: 0; 
-    
     display: flex; 
     align-items: center;
     justify-content: center;
-    
     border-radius: 10px; 
     border:none; 
     cursor:pointer; 
@@ -161,7 +195,7 @@ display: none !important;
 }
 
 .icon-btn:hover {
-    background: rgba(255,255,255,0.12); 
+background: rgba(255,255,255,0.12); 
 }
 
 
