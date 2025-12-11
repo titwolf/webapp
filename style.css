@@ -111,11 +111,22 @@ pointer-events: none;
 visibility: hidden; /* Добавляем, чтобы гарантировать скрытие */
 }
 
-.view-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.view-header{ 
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center; 
+    gap:12px; 
+    margin-bottom:12px; 
+}
 .view-actions{ 
     display:flex; 
-    gap:8px; 
+    gap: 6px; /* Отступ между элементами view-actions (группами и крестиком) */
     align-items: center; 
+    flex-shrink: 0; 
+}
+
+.view-actions #closeViewBtn {
+    margin-left: auto;
 }
 
 /* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
@@ -129,7 +140,8 @@ display: none !important;
     background:rgba(255,255,255,0.08); 
     color:#fff; 
     
-    width: 36px; 
+    width: 36px; /* Гарантированная квадратная форма */
+    min-width: 36px; /* Защита от сжатия */
     height: 36px; 
     padding: 0; 
     
