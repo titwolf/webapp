@@ -4,9 +4,9 @@
 
 :root{
 
- --bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
+--bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
 
- --accent:#8a5cff; --primary:#5d1fff; --white:#fff;
+--accent:#8a5cff; --primary:#5d1fff; --white:#fff;
 
 }
 
@@ -76,7 +76,7 @@ border-radius:0 0 20px 20px; z-index:50; transition: transform .35s ease;
 
 .bottom-modal{
 
- position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
+position:fixed; left:0; right:0; bottom:-110%; max-height:92vh; background: rgba(20,18,30,0.96);
 
 backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:130; transition: bottom .38s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
 
@@ -90,7 +90,7 @@ backdrop-filter: blur(18px); border-radius:22px 22px 0 0; padding:20px; z-index:
 
 bottom: 0 !important;
 
- opacity: 1 !important;
+opacity: 1 !important;
 
 transform: translateY(0) !important;
 
@@ -184,7 +184,7 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 
 .view-modal:not(.show) {
 
- pointer-events: none;
+pointer-events: none;
 
 visibility: hidden; /* Добавляем, чтобы гарантировать скрытие */
 
@@ -231,8 +231,7 @@ display: none;
 /* 1. РЕЖИМ ПРОСМОТРА (по умолчанию) */
 
 .view-modal:not(.edit-mode) .view-ex .view-display {
-
- display: flex; /* Показываем только текст */
+display: flex; /* Показываем только текст */
 
 }
 
@@ -307,7 +306,7 @@ display: none !important;
 
 .view-modal.edit-mode #editWorkoutBtn {
 
- display: none !important;
+display: none !important;
 
 }
 
@@ -327,7 +326,7 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 .view-modal.edit-mode .view-ex.is-editing input {
 
- margin-bottom: 8px;
+margin-bottom: 8px;
 
 }
 
@@ -339,7 +338,7 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 .view-modal.edit-mode .view-ex.is-editing .view-edit-list-item {
 
- display: none;
+display: none;
 
 }
 
