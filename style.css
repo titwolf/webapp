@@ -71,13 +71,12 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 .row{ 
 display:flex; 
 gap:10px; 
-align-items: center; /* ⭐ ДОБАВЛЕНО: Предотвращает вертикальное растяжение кнопок */
+align-items: center; 
 }
 .row.end{ justify-content:flex-end; }
 
 .row .btn{ 
- flex-grow: 1; /* ⭐ ИЗМЕНЕНО: Используем flex-grow для горизонтального заполнения, 
-                  вместо комплексного flex: 1, чтобы избежать неожиданных эффектов */
+flex: 1; /* Возвращаем flex: 1 для исходного дизайна row */
 }
 
 /* exercise form */
@@ -102,7 +101,7 @@ align-items: center; /* ⭐ ДОБАВЛЕНО: Предотвращает ве�
 .btn.primary.disabled, .btn.primary[disabled]{ opacity:.45; pointer-events:none; }
 
 /* view modal */
-.view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:110; pointer-events:none; }
+.view-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:120; /* Вернули z-index из первого блока */ pointer-events:none; }
 .view-inner{ width:min(720px,94%); max-height:86vh; overflow:auto; background: rgba(18,16,26,0.98); backdrop-filter: blur(12px); border-radius:14px; padding:18px; transform:translateY(12px); opacity:0; transition: all .22s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
 .view-modal.show{ pointer-events:auto; }
 .view-modal.show .view-inner{ transform:translateY(0); opacity:1; }
@@ -116,7 +115,7 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 .view-actions{ 
     display:flex; 
     gap:8px; 
-    align-items: center; /* ⭐ ИСПРАВЛЕНИЕ 2.1: Гарантирует вертикальное центрирование */
+    align-items: center; 
 }
 
 /* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
@@ -125,36 +124,34 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 display: none !important;
 }
 
-/* ⭐ ИСПРАВЛЕНИЕ 2.2: Стили для всех кнопок-иконок в header/действиях (фиксированный размер) */
+/* ⭐ ИСПРАВЛЕНИЕ: Компактные кнопки-иконки (сохранили стиль из последнего рабочего кода) */
 .icon-btn{ 
-    background:rgba(255,255,255,0.08); /* Чуть более заметный фон */
+    background:rgba(255,255,255,0.08); 
     color:#fff; 
     
-    width: 36px; /* Фиксированная ширина */
-    height: 36px; /* Фиксированная высота (делает кнопку квадратной) */
-    padding: 0; /* Убираем padding, т.к. задали явную высоту/ширину */
+    width: 36px; 
+    height: 36px; 
+    padding: 0; 
     
-    display: flex; /* Делаем flex, чтобы центрировать иконку/текст внутри */
+    display: flex; 
     align-items: center;
     justify-content: center;
     
-    border-radius: 10px; /* Скругленные углы */
+    border-radius: 10px; 
     border:none; 
     cursor:pointer; 
-    font-size: 18px; /* Размер иконки */
-    line-height: 1; /* Для лучшего центрирования */
+    font-size: 18px; 
+    line-height: 1; 
     transition: background 0.15s ease;
 }
 
 .icon-btn:hover {
-    background: rgba(255,255,255,0.12); /* Эффект при наведении */
+    background: rgba(255,255,255,0.12); 
 }
 
 
 /* view body */
-.view-body{ display:flex; flex-direction:column; gap:8px; }
-/* УЛУЧШЕНИЕ 2.1: Убираем padding у view-ex, чтобы он не добавлял лишней высоты, 
-   т.к. мы будем padding внутри view-edit-list-item */
+.view-body{ display:flex; flex-direction:column; gap:10px; } /* Исходный gap: 10px */
 .view-ex{ background: rgba(255,255,255,0.04); padding:0; border-radius:10px; }
 
 
