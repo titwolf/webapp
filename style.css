@@ -132,7 +132,6 @@ flex: 1; /* Возвращаем flex: 1 для исходного дизайн�
 .ex-meta{ color: rgba(255,255,255,0.75); font-size:13px; }
 .ex-actions{ display:flex; gap:6px; /* Уменьшен отступ между кнопками */ }
 .icon-small{ background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; border:none; cursor:pointer; }
-.icon-small.primary-icon { background: var(--primary); color: white; } /* Добавлено для кнопки сохранения названия */
 
 /* disabled */
 .btn.primary.disabled, .btn.primary[disabled]{ opacity:.45; pointer-events:none; }
@@ -207,30 +206,21 @@ visibility: hidden;
 /* КОНЕЦ ФИКСОВ АДАПТИВНОСТИ ЗАГОЛОВКА */
 
 /* ⭐ НОВЫЕ СТИЛИ ДЛЯ РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ */
-.view-title-display { /* Новый класс для контейнера названия в режиме просмотра */
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-grow: 1; 
-    min-width: 0;
-}
-.edit-title-form { /* Новый класс для формы редактирования названия */
-    display: flex;
-    align-items: center;
+#viewTitleEditForm {
+    display: none; 
+    flex-grow: 1;
     gap: 8px;
-    flex-grow: 1;
+    align-items: center;
     min-width: 0;
 }
-.edit-title-form input {
+#viewTitleInput {
     flex-grow: 1;
-    padding: 8px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    margin-bottom: 0;
+    min-width: 0;
+    padding: 8px 10px; 
+    margin-bottom: 0; 
+    font-size: 16px;
 }
-.edit-title-form .icon-small {
+#viewTitleSaveBtn, #viewTitleCancelBtn {
     flex-shrink: 0; 
     width: 36px;
     height: 36px;
@@ -245,7 +235,11 @@ visibility: hidden;
 
 
 /* ⭐ ФИКС 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, которые вы попросили убрать */
-/* Удалил правила, так как в JS это уже учтено (mainViewActions/editModeActions) */
+.view-modal.edit-mode #saveViewChangesBtn,
+.view-modal.edit-mode #cancelViewEditBtn {
+display: none !important;
+}
+
 
 /* ⭐ Компактные кнопки-иконки */
 .icon-btn{ 
@@ -267,7 +261,7 @@ visibility: hidden;
 }
 
 .icon-btn:hover {
-    background: rgba(255,255,255,0.12); 
+  background: rgba(255,255,255,0.12); 
 }
 
 
@@ -276,71 +270,47 @@ visibility: hidden;
     display:flex; 
     flex-direction:column; 
     /* ⭐ ФИКС: Уменьшен gap между карточками упражнений */
-    gap:10px; /* Увеличено до 10px, чтобы карточки были "чуть-чуть по больше" */
+    gap:6px; 
 }
-
-/* ⭐ ИЗМЕНЕНИЕ: Стиль для карточки упражнения в View Modal (Базовый) */
 .view-ex{ 
-    background: rgba(255,255,255,0.06); 
-    border-radius:12px; /* Чуть больше радиус */
-    transition: background 0.2s ease;
-    border: 1px solid transparent;
-}
-/* Стилизация для выделения при редактировании */
-.view-ex.is-editing {
-    background-color: rgba(63, 0, 113, 0.8); /* Цвет из var(--bg2) */
-    border-color: var(--primary);
+    background: rgba(255,255,255,0.04); 
+    padding:0; 
+    /* ⭐ ФИКС: Уменьшен радиус для компактности */
+    border-radius:8px; 
 }
 
 
 /* Общие правила: по умолчанию скрываем все режимы, кроме просмотра */
 .view-ex .view-display,
-.view-ex .view-ex-card-wrapper, /* Обновленный класс для режима списка */
+.view-ex .view-edit-list-item,
 .view-ex .view-edit-form {
 display: none;
 }
 
-
 /* 1. РЕЖИМ ПРОСМОТРА (по умолчанию) */
 .view-modal:not(.edit-mode) .view-ex .view-display {
 display: flex; 
-/* ⭐ УВЕЛИЧЕНИЕ РАЗМЕРА: Увеличен padding для "чуть-чуть по больше" */
-padding: 12px 15px; 
+/* ⭐ ФИКС: Уменьшен padding */
+padding: 6px 10px; 
 flex-direction: column; 
-gap: 4px; /* Увеличен gap для лучшей читаемости */
 }
-.view-ex .view-display div {
-    margin: 0 !important; 
+.view-modal:not(.edit-mode) .view-ex .view-display div[style*="margin-top:4px"] {
+    margin-top: 2px !important; 
 }
-.view-ex .view-display div[style*="font-weight:700"] {
-    font-size: 1.1em;
+.view-modal:not(.edit-mode) .view-ex .view-display div[style*="color:rgba(255,255,255,0.7)"] {
+    /* ⭐ ФИКС: Уменьшен отступ и шрифт для мета-информации */
+    margin-top: 2px !important; 
+    font-size: 13px;
 }
-.view-ex .view-display div[style*="color:rgba(255,255,255,0.7)"] {
-    /* ⭐ Стиль для мета-информации (повторения/время) */
-    font-size: 0.9em;
-}
-
 
 /* 2. РЕЖИМ РЕДАКТИРОВАНИЯ СПИСКА */
-.view-modal.edit-mode .view-ex:not(.is-editing) .view-ex-card-wrapper {
-    /* ⭐ НОВЫЙ БЛОК: Замена view-edit-list-item на view-ex-card-wrapper */
-    display: flex;
-    flex-direction: column; /* Элементы в столбец, чтобы мета-данные были под названием */
-    padding: 10px 15px; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.view-modal.edit-mode .view-ex:not(.is-editing) .view-ex-card-wrapper > div:first-child {
-    /* Контейнер для названия и кнопок */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.view-modal.edit-mode .view-ex:not(.is-editing) .view-ex-card-wrapper > div:nth-child(2) {
-    /* Мета-информация */
-    align-self: flex-start;
-    margin-bottom: 5px;
+.view-modal.edit-mode .view-ex:not(.is-editing) .view-edit-list-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+/* ⭐ ФИКС: Уменьшен padding */
+padding: 5px 8px; 
+border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Скрываем кнопку "Карандаш" (editWorkoutBtn) в режиме редактирования */
@@ -349,38 +319,42 @@ display: none !important;
 }
 
 /* Стилизация кнопок редактирования/удаления в режиме списка */
-.view-modal.edit-mode .view-ex-card-wrapper .ex-actions {
-    gap: 6px; /* Уменьшен gap */
+.view-modal.edit-mode .view-edit-list-item .ex-actions {
+    gap: 4px; /* Уменьшен gap */
 }
-.view-modal.edit-mode .view-ex-card-wrapper .ex-actions .icon-small {
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small {
 background: rgba(255,255,255,0.1); 
-padding: 6px 8px; /* Восстановлен исходный padding кнопок-иконок */
-border-radius: 8px;
-font-size: 16px;
+padding: 4px 6px; /* ⭐ Уменьшен padding кнопок-иконок */
+border-radius: 6px;
+font-size: 14px;
 line-height: 1; 
 }
-.view-modal.edit-mode .view-ex-card-wrapper .ex-actions .icon-small[onclick*="deleteViewExercise"] {
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small:hover {
+background: rgba(255,255,255,0.15);
+}
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"] {
 background: rgba(255, 59, 48, 0.2); 
 }
-.view-modal.edit-mode .view-ex-card-wrapper .ex-actions .icon-small[onclick*="deleteViewExercise"]:hover {
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"]:hover {
 background: rgba(255, 59, 48, 0.3);
 }
 
 /* 3. РЕЖИМ РЕДАКТИРОВАНИЯ ФОРМЫ */
 .view-modal.edit-mode .view-ex.is-editing .view-edit-form {
 display: block; 
-padding: 15px; /* Увеличен padding для формы */
+padding: 10px; 
+border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .view-modal.edit-mode .view-ex.is-editing input {
-margin-bottom: 10px; /* Увеличен отступ под полем ввода */
-padding: 12px; /* Увеличен padding для полей ввода */
+margin-bottom: 6px; /* Уменьшен отступ под полем ввода */
+padding: 10px 12px; 
 }
 
 /* ⭐ ФИКС 3.4: Адаптивность кнопок сохранения/отмены в форме упражнения */
 .view-modal.edit-mode .view-ex.is-editing .view-edit-form .row.end {
     display: flex; 
-    gap: 10px; 
+    gap: 8px; 
     align-items: center;
     justify-content: flex-end; 
     margin-top: 10px;
@@ -393,7 +367,8 @@ padding: 12px; /* Увеличен padding для полей ввода */
 
 
 /* В режиме редактирования формы скрываем все остальное для этого элемента */
-.view-modal.edit-mode .view-ex.is-editing .view-display {
+.view-modal.edit-mode .view-ex.is-editing .view-display,
+.view-modal.edit-mode .view-ex.is-editing .view-edit-list-item {
 display: none;
 }
 
@@ -403,7 +378,7 @@ width: 100%;
 background: rgba(255, 255, 255, 0.1);
 color: #fff;
 border: none;
-padding: 12px; /* Увеличен padding */
+padding: 10px; /* Уменьшен padding */
 border-radius: 8px;
 font-weight: 600;
 }
@@ -414,8 +389,8 @@ background: rgba(255, 255, 255, 0.2);
 
 /* responsive */
 @media (max-width:520px){
-  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
-  .top-bar{ padding:8px 12px; height:18vh; }
-  .profile-btn img{ width:56px; height:56px; }
-  .add-btn{ width:44px; height:44px; font-size:28px; }
+  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
+  .top-bar{ padding:8px 12px; height:18vh; }
+  .profile-btn img{ width:56px; height:56px; }
+  .add-btn{ width:44px; height:44px; font-size:28px; }
 }
