@@ -93,10 +93,9 @@
           </div>
 
           <div id="editModeActions" style="display:none; gap:6px;">
-            <button class="icon-btn" id="addExerciseToViewBtn" title="Добавить упражнение">+</button>
             <button class="icon-btn" id="saveViewChangesBtn" title="Сохранить изменения">✔</button>
             <button class="icon-btn" id="cancelViewEditBtn" title="Отмена">✕</button>
-            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button> 
+            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">←</button> 
           </div>
           
           <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
@@ -104,23 +103,23 @@
       </div>
 
       <div class="view-body" id="viewBody">
-                <button class="btn add-ex" id="addExerciseToViewBtn" style="margin-bottom: 15px; display: none;">+ Добавить упражнение</button>
+              </div>
+      
+      <button class="btn primary" id="addExerciseToViewBtn" style="margin-top: 15px; display: none; width: 100%;">Добавить упражнение</button>
 
-                <div class="exercise-form" id="viewExerciseForm" style="display: none;">
-          <h2>Добавить упражнение</h2>
-          <input id="viewExName" type="text" placeholder="Название упражнения *">
-          <input id="viewExDesc" type="text" placeholder="Описание (необязательно)">
-          <input id="viewExReps" type="number" placeholder="Повторения *" min="1">
-          <div class="time-row">
-            <input id="viewExMin" type="number" placeholder="Мин" min="0">
-            <input id="viewExSec" type="number" placeholder="Сек" min="0" max="59">
-          </div>
-          <div class="row end" style="margin-top: 15px;">
-            <button class="btn primary" id="saveNewViewExerciseBtn">Сохранить</button>
-            <button class="btn ghost" id="cancelNewViewExerciseBtn">Отмена</button>
-          </div>
+      <div class="exercise-form" id="viewExerciseForm" style="display: none; margin-top: 10px; padding: 10px 0;">
+        <h2>Добавить упражнение</h2>
+        <input id="viewExName" type="text" placeholder="Название упражнения *">
+        <input id="viewExDesc" type="text" placeholder="Описание (необязательно)">
+        <input id="viewExReps" type="number" placeholder="Повторения *" min="1">
+        <div class="time-row">
+          <input id="viewExMin" type="number" placeholder="Мин" min="0">
+          <input id="viewExSec" type="number" placeholder="Сек" min="0" max="59">
         </div>
-        
+        <div class="row end" style="margin-top: 15px;">
+          <button class="btn primary" id="saveNewViewExerciseBtn">Сохранить</button>
+          <button class="btn ghost" id="cancelNewViewExerciseBtn">Отмена</button>
+        </div>
       </div>
 
     </div>

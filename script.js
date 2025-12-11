@@ -687,7 +687,7 @@ function renderViewExercises() {
     // ⭐ Скрываем/Отображаем форму добавления упражнения
     if (viewExerciseForm) viewExerciseForm.style.display = isAddingNewExerciseInView ? 'block' : 'none';
     
-    viewBody.innerHTML = ''; // Очищаем контейнер, чтобы перерисовать
+    viewBody.innerHTML = ''; // Очищаем контейнер, чтобы перерисовать (теперь он не содержит кнопку и форму)
     
     const isEditMode = viewModal?.classList.contains('edit-mode');
     const isTitleEditing = viewTitleEditForm?.style.display === 'flex';
@@ -714,80 +714,65 @@ function renderViewExercises() {
         viewTitleDisplayContainer.style.display = isTitleEditing ? 'none' : 'flex';
     }
 
-    // ⭐ Управление видимостью кнопки "Добавить упражнение"
+    // ⭐ Управление видимостью кнопки "Добавить упражнение" (теперь она находится вне viewBody)
     if (addExerciseToViewBtn) {
         // Кнопка видна, если мы в режиме редактирования, не редактируем название, не редактируем конкретное упражнение, И НЕ ОТКРЫТА ФОРМА ДОБАВЛЕНИЯ
         const showAddButton = isEditMode && !isTitleEditing && editingViewExerciseIndex === null && !isAddingNewExerciseInView;
         addExerciseToViewBtn.style.display = showAddButton ? 'block' : 'none'; 
     }
 
-    // Если открыта форма добавления упражнения, не рисуем список
-    if (isAddingNewExerciseInView) {
-        // Перемещаем форму добавления упражнения под viewBody, если она есть
-        if (viewExerciseForm && viewBody.parentNode && viewBody.nextSibling !== viewExerciseForm) {
-             viewBody.parentNode.insertBefore(viewExerciseForm, viewBody.nextSibling);
+    // Рисуем список упражнений
+    (w.exercises || []).forEach((ex, idx) => {
+        const div = document.createElement('div');
+        div.className = 'view-ex';
+        
+        const isEditingThisExercise = isEditMode && editingViewExerciseIndex === idx;
+        
+        // ⭐ FIX 1: Добавляем класс, если мы редактируем это упражнение
+        if (isEditingThisExercise) {
+            div.classList.add('is-editing');
         }
-    } else {
-        // Рисуем список упражнений
-        (w.exercises || []).forEach((ex, idx) => {
-            const div = document.createElement('div');
-            div.className = 'view-ex';
-            
-            const isEditingThisExercise = isEditMode && editingViewExerciseIndex === idx;
-            
-            // --- 1. БЛОК ОТОБРАЖЕНИЯ (только текст) ---
-            const displayBlock = `
-                <div class="view-display">
-                    <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
-                    ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
-                    <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
-                </div>`;
-            
-            // --- 2. БЛОК РЕДАКТИРОВАНИЯ СПИСКА (кнопки) ---
-            const editListBlock = `
-                <div class="view-edit-list-item">
-                    <div style="font-weight:600; flex-grow:1;">${idx + 1}. ${ex.name}</div>
-                    <div class="ex-actions" style="display:flex; gap:8px;">
-                        <button class="icon-small" onclick="startEditViewExercise(${idx})">✎</button>
-                        <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
+        
+        // --- 1. БЛОК ОТОБРАЖЕНИЯ (только текст) ---
+        const displayBlock = `
+            <div class="view-display">
+                <div style="font-weight:700">${idx + 1}. ${ex.name}</div>
+                ${ex.desc ? `<div style="margin-top:4px;color:rgba(255,255,255,0.8)">${ex.desc}</div>` : ''}
+                <div style="color:rgba(255,255,255,0.7)">${ex.reps} повт • ${ex.min}м ${ex.sec}с</div>
+            </div>`;
+        
+        // --- 2. БЛОК РЕДАКТИРОВАНИЯ СПИСКА (кнопки) ---
+        const editListBlock = `
+            <div class="view-edit-list-item">
+                <div style="font-weight:600; flex-grow:1;">${idx + 1}. ${ex.name}</div>
+                <div class="ex-actions" style="display:flex; gap:8px;">
+                    <button class="icon-small" onclick="startEditViewExercise(${idx})">✎</button>
+                    <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
+            </div>
+            </div>`;
+        
+        // --- 3. ФОРМА РЕДАКТИРОВАНИЯ (поля ввода) ---
+        const editForm = `
+            <div class="view-edit-form" data-index="${idx}">
+                <div style="font-weight:700; margin-bottom:10px;">Редактирование: ${ex.name}</div>
+                <input type="text" value="${ex.name}" placeholder="Название упражнения" data-field="name">
+                <input type="text" value="${ex.desc || ''}" placeholder="Описание" data-field="desc">
+                <input type="number" value="${ex.reps}" placeholder="Повторения *" min="1" data-field="reps">
+                <div class="time-row">
+                    <input type="number" value="${ex.min}" placeholder="Мин" min="0" data-field="min">
+                    <input type="number" value="${ex.sec}" placeholder="Сек" min="0" max="59" data-field="sec">
                 </div>
-                </div>`;
-            
-            // --- 3. ФОРМА РЕДАКТИРОВАНИЯ (поля ввода) ---
-            const editForm = `
-                <div class="view-edit-form" data-index="${idx}">
-                    <div style="font-weight:700; margin-bottom:10px;">Редактирование: ${ex.name}</div>
-                    <input type="text" value="${ex.name}" placeholder="Название упражнения" data-field="name">
-                    <input type="text" value="${ex.desc || ''}" placeholder="Описание" data-field="desc">
-                    <input type="number" value="${ex.reps}" placeholder="Повторения *" min="1" data-field="reps">
-                    <div class="time-row">
-                        <input type="number" value="${ex.min}" placeholder="Мин" min="0" data-field="min">
-                        <input type="number" value="${ex.sec}" placeholder="Сек" min="0" max="59" data-field="sec">
-                    </div>
-                    <div class="row end" style="margin-top:10px;">
-                        <button class="btn ghost" onclick="cancelEditViewExercise()">Отмена</button>
-                        <button class="btn primary" onclick="saveOneViewExercise(${idx})">Сохранить упражнение</button>
-                    </div>
-                </div>`;
+                <div class="row end" style="margin-top:10px;">
+                    <button class="btn ghost" onclick="cancelEditViewExercise()">Отмена</button>
+                    <button class="btn primary" onclick="saveOneViewExercise(${idx})">Сохранить упражнение</button>
+                </div>
+            </div>`;
 
-            // Отображаем либо блок редактирования, либо блок просмотра
-            if (isEditMode && !isTitleEditing) {
-                if (isEditingThisExercise) {
-                    // Если мы редактируем это упражнение, показываем форму (FIX 1)
-                    div.innerHTML = editForm;
-                } else {
-                    // Если мы в режиме редактирования, но не редактируем это упражнение, показываем кнопки
-                    div.innerHTML = editListBlock; 
-                }
-            } else {
-                // Если мы не в режиме редактирования, показываем только блок отображения
-                div.innerHTML = displayBlock;
-            }
+        // ⭐ FIX 1: Объединяем все блоки в div.innerHTML
+        div.innerHTML = displayBlock + editListBlock + editForm;
 
-            viewBody.appendChild(div);
-        });
-    }
-
+        viewBody.appendChild(div);
+    });
 }
 
 
