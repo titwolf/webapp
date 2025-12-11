@@ -77,22 +77,29 @@
   <!-- МОДАЛКА ПРОСМОТРА ТРЕНИРОВКИ -->
   <div class="view-modal" id="viewModal" aria-hidden="true">
     <div class="view-inner">
-      <div class="view-header">
-        <h3 id="viewTitle">Тренировка</h3>
-        <div class="view-actions">
-          <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
-          <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
-          <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
-          <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+        <div class="view-header">
+            <h3 id="viewTitle">Тренировка</h3>
+            <div class="view-actions">
+                <div id="mainViewActions" style="display:flex; gap:8px;">
+                    <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
+                    <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
+                    <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
+                </div>
+
+                <div id="editModeActions" style="display:none; gap:8px;">
+                    <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button>
+                </div>
+                
+                <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+            </div>
         </div>
-      </div>
-      <div class="view-body" id="viewBody"></div>
-      <div class="view-edit-controls">
-        <button class="btn primary" id="saveViewChangesBtn">Сохранить изменения</button>
-        <button class="btn ghost" id="cancelViewEditBtn">Отмена</button>
-      </div>
+        <div class="view-body" id="viewBody"></div>
+        <div class="view-edit-controls" style="display:none;"> 
+            <button class="btn primary" id="saveViewChangesBtn">Сохранить изменения</button>
+            <button class="btn ghost" id="cancelViewEditBtn">Отмена</button>
+        </div>
     </div>
-  </div>
+</div>
 
   <!-- МОДАЛКА ПРОФИЛЯ -->
   <div class="view-modal" id="profileModal" aria-hidden="true">

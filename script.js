@@ -64,6 +64,12 @@ const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
 const saveViewChangesBtn = document.getElementById('saveViewChangesBtn');
 const cancelViewEditBtn = document.getElementById('cancelViewEditBtn');
 
+// НОВЫЕ ЭЛЕМЕНТЫ: Контейнеры и кнопка для управления режимом редактирования
+const mainViewActions = document.getElementById('mainViewActions');
+const editModeActions = document.getElementById('editModeActions');
+const exitEditModeBtn = document.getElementById('exitEditModeBtn');
+
+
 /* ====== Data ====== */
 let workouts = [];
 let currentTempTitle = '';
@@ -298,6 +304,13 @@ saveTrainingBtn.addEventListener('click', async () => {
         if (editingWorkoutId) {
             const index = workouts.findIndex(w => Number(w.id) === Number(editingWorkoutId));
             if (index > -1) workouts[index] = savedWorkout;
+
+            // ИСПРАВЛЕНИЕ 1: Обновление модалки просмотра сразу после сохранения
+            if (activeViewId === editingWorkoutId && viewModal.classList.contains('show')) {
+                // Перезагружаем упражнения в view modal, чтобы увидеть новое добавленное
+                renderViewExercises(); 
+            }
+
         } else {
             workouts.push(savedWorkout);
         }
@@ -392,7 +405,7 @@ async function saveWorkoutChanges(workout) {
         if (index > -1) workouts[index] = savedWorkout;
 
         renderWorkouts(); 
-        // alert("Изменения сохранены!"); // Отключим алерты при редактировании одного упражнения
+        renderViewExercises(); // !!! ДОБАВЛЕНО: Перерисовать упражнения после сохранения изменений !!!
     } catch (err) {
         console.error("Ошибка при сохранении редактирования:", err);
         alert("Ошибка при сохранении. Посмотрите консоль.");
@@ -424,7 +437,6 @@ function deleteViewExercise(idx) {
     if (confirm('Удалить это упражнение из тренировки?')) {
         w.exercises.splice(idx, 1);
         saveWorkoutChanges(w);
-        renderViewExercises();
     }
 }
 
@@ -453,6 +465,13 @@ async function saveOneViewExercise(idx) {
     cancelEditViewExercise();
 }
 
+// НОВАЯ ФУНКЦИЯ: Выход из режима редактирования (для кнопки "⬅")
+function exitEditMode() {
+    viewModal.classList.remove('edit-mode');
+    editingViewExerciseIndex = null;
+    renderViewExercises(); // Перерисовываем, чтобы показать кнопки Старт/Удалить
+}
+
 /* ====== View modal (Просмотр и Редактирование на месте) ====== */
 function renderViewExercises() {
     const w = workouts.find(x => Number(x.id) === Number(activeViewId));
@@ -460,6 +479,17 @@ function renderViewExercises() {
     viewBody.innerHTML = '';
     
     const isEditMode = viewModal.classList.contains('edit-mode');
+
+    // ИЗМЕНЕНИЕ: Управление отображением кнопок в заголовке
+    if (mainViewActions && editModeActions) {
+        if (isEditMode) {
+            mainViewActions.style.display = 'none'; // Скрываем "Старт", "Удалить", "Редактировать"
+            editModeActions.style.display = 'flex'; // Показываем кнопку "Назад"
+        } else {
+            mainViewActions.style.display = 'flex'; // Показываем "Старт", "Удалить", "Редактировать"
+            editModeActions.style.display = 'none'; // Скрываем кнопку "Назад"
+        }
+    }
 
     (w.exercises || []).forEach((ex, idx) => {
         const div = document.createElement('div');
@@ -483,7 +513,7 @@ function renderViewExercises() {
                 <div class="ex-actions" style="display:flex; gap:8px;">
                     <button class="icon-small" onclick="startEditViewExercise(${idx})">✎</button>
                     <button class="icon-small" onclick="deleteViewExercise(${idx})">🗑</button>
-                </div>
+            </div>
             </div>`;
         
         // --- 3. ФОРМА РЕДАКТИРОВАНИЯ (поля ввода) ---
@@ -523,6 +553,13 @@ function openView(id) {
     viewModal.classList.add('show');
     viewModal.classList.remove('edit-mode'); 
     editingViewExerciseIndex = null; // Сброс состояния редактирования
+    
+    // ИЗМЕНЕНИЕ: Устанавливаем правильный режим отображения кнопок при открытии
+    if (mainViewActions && editModeActions) {
+        mainViewActions.style.display = 'flex';
+        editModeActions.style.display = 'none';
+    }
+    
     const w = workouts.find(x => Number(x.id) === Number(id));
     viewTitle.textContent = w?.title || w?.name || 'Без названия';
     renderViewExercises();
@@ -551,11 +588,12 @@ overlay.addEventListener('click', () => {
     }
 });
 
+// ИЗМЕНЕНИЕ: Кнопка "Редактировать"
 editWorkoutBtn.addEventListener('click', () => { 
     if (activeViewId === null) return;
     
     // Переключаем модалку просмотра в режим редактирования списка
-    viewModal.classList.toggle('edit-mode'); 
+    viewModal.classList.add('edit-mode'); // Всегда устанавливаем режим редактирования
     editingViewExerciseIndex = null; // Сбрасываем редактирование отдельной формы
     
     // Перерисовываем
@@ -573,12 +611,12 @@ deleteWorkoutBtn.addEventListener('click', async () => {
 });
 closeViewBtn.addEventListener('click', closeView);
 
+//НОВАЯ КНОПКА: Выход из режима редактирования
+if (exitEditModeBtn) exitEditModeBtn.addEventListener('click', exitEditMode);
+
 // ОТМЕНА РЕДАКТИРОВАНИЯ (Теперь только выход из общего режима редактирования списка)
-cancelViewEditBtn.addEventListener('click', () => {
-    viewModal.classList.remove('edit-mode');
-    editingViewExerciseIndex = null;
-    renderViewExercises(); 
-});
+// Перенаправляем существующую кнопку Отмена (cancelViewEditBtn) на новую логику, если она осталась в HTML
+cancelViewEditBtn.addEventListener('click', exitEditMode); 
 
 // СОХРАНЕНИЕ ИЗМЕНЕНИЙ В МОДАЛКЕ ПРОСМОТРА
 // ЭТА КНОПКА БОЛЬШЕ НЕ НУЖНА ДЛЯ СОХРАНЕНИЯ, Т.К. ОНО ПРОИСХОДИТ В saveOneViewExercise
@@ -595,6 +633,7 @@ window.startEditViewExercise = startEditViewExercise; // НОВАЯ
 window.cancelEditViewExercise = cancelEditViewExercise; // НОВАЯ
 window.deleteViewExercise = deleteViewExercise; // НОВАЯ
 window.saveOneViewExercise = saveOneViewExercise; // НОВАЯ
+window.exitEditMode = exitEditMode; // НОВАЯ
 
 /* ====== Init ====== */
 window.addEventListener('DOMContentLoaded', loadWorkouts);
