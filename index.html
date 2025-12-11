@@ -75,24 +75,34 @@
   </section>
 
   <!-- МОДАЛКА ПРОСМОТРА ТРЕНИРОВКИ -->
-  <div class="view-modal" id="viewModal" aria-hidden="true">
-    <div class="view-inner">
-        <div class="view-header">
-            <h3 id="viewTitle">Тренировка</h3>
-            <div class="view-actions">
-                <div id="mainViewActions" style="display:flex; gap:8px;">
-                    <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
-                    <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
-                    <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
-                </div>
-
-                <div id="editModeActions" style="display:none; gap:8px;">
-                    <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button>
-                </div>
-                
-                <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
-            </div>
+  <div class="view-header">
+    <div class="modal-title-container"> 
+        <div id="viewTitleDisplayContainer" style="display: flex; align-items: center; gap: 8px;">
+            <h3 id="viewTitleDisplay">Тренировка</h3>
+            <button id="viewTitleEditBtn" class="icon-small" style="display: none;">✎</button> 
         </div>
+
+        <div id="viewTitleEditForm" style="display: none; align-items: center; gap: 8px; width: 100%;">
+            <input type="text" id="viewTitleInput" style="flex-grow: 1; padding: 5px; border-radius: 4px; border: 1px solid var(--color-primary-dark);">
+            <button id="viewTitleSaveBtn" class="icon-small" style="color: #6ee7b7; font-size: 1.2em;">✔</button>
+            <button id="viewTitleCancelBtn" class="icon-small" style="color: #fca5a5; font-size: 1.2em;">✕</button>
+        </div>
+    </div>
+    
+    <div class="view-actions">
+        <div id="mainViewActions" style="display:flex; gap:8px;">
+            <button class="icon-btn" id="editWorkoutBtn" title="Редактировать">✎</button>
+            <button class="icon-btn" id="startWorkoutBtn" title="Начать">▶</button>
+            <button class="icon-btn" id="deleteWorkoutBtn" title="Удалить">🗑</button>
+        </div>
+
+        <div id="editModeActions" style="display:none; gap:8px;">
+            <button class="icon-btn" id="exitEditModeBtn" title="Выйти из редактирования">⬅</button>
+        </div>
+        
+        <button class="icon-btn" id="closeViewBtn" title="Закрыть">✕</button>
+    </div>
+</div>
         <div class="view-body" id="viewBody"></div>
         <div class="view-edit-controls" style="display:none;"> 
             <button class="btn primary" id="saveViewChangesBtn">Сохранить изменения</button>
