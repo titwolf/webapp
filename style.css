@@ -81,7 +81,7 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
     justify-content: space-between;
     align-items: center;
     gap: 12px; 
-    margin-bottom: 12px;
+    margin-bottom: 8px; /* Уменьшен отступ */
 }
 
 /* ⭐ ФИКС 3.2: Адаптивность и обнуление margin у H2 */
@@ -122,15 +122,15 @@ flex: 1; /* Возвращаем flex: 1 для исходного дизайн�
 .time-row input{ width:50%; }
 
 /* exercise list */
-.exercise-list{ display:flex; flex-direction:column; gap:10px; margin-top:8px; padding-bottom:12px; }
+.exercise-list{ display:flex; flex-direction:column; gap:8px; /* Уменьшен отступ между карточками */ margin-top:8px; padding-bottom:12px; }
 
 /* exercise card */
-.exercise-card{ background: rgba(255,255,255,0.06); padding:12px; border-radius:14px; cursor:grab; display:flex; flex-direction:column; gap:6px; transition: transform .12s ease, box-shadow .12s ease; }
+.exercise-card{ background: rgba(255,255,255,0.06); padding:10px; /* Уменьшен padding */ border-radius:14px; cursor:grab; display:flex; flex-direction:column; gap:6px; transition: transform .12s ease, box-shadow .12s ease; }
 .exercise-card.dragging{ opacity:0.6; transform:scale(1.02); cursor:grabbing; box-shadow:0 8px 24px rgba(0,0,0,0.45); }
 .ex-card-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .ex-title{ font-weight:700; }
 .ex-meta{ color: rgba(255,255,255,0.75); font-size:13px; }
-.ex-actions{ display:flex; gap:8px; }
+.ex-actions{ display:flex; gap:6px; /* Уменьшен отступ между кнопками */ }
 .icon-small{ background:rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; border:none; cursor:pointer; }
 
 /* disabled */
@@ -164,12 +164,12 @@ visibility: hidden;
     display:flex; 
     justify-content:space-between; 
     align-items:center; 
-    gap:12px; 
-    margin-bottom:12px; 
+    gap:8px; /* Уменьшен горизонтальный отступ */
+    margin-bottom:8px; /* Уменьшен вертикальный отступ */
 }
 .view-actions{ 
     display:flex; 
-    gap: 6px; 
+    gap: 4px; /* Уменьшен отступ между кнопками */
     align-items: center; 
     flex-shrink: 0; 
 }
@@ -200,14 +200,37 @@ visibility: hidden;
     gap: 8px;
     flex-grow: 1; 
     min-width: 0; 
-    /* УДАЛЕНО: overflow: hidden; white-space: nowrap; - они не нужны, если h3 адаптивен */
-}
-#viewTitleDisplay {
-    /* Эти стили больше не нужны, если используется clamp: */
-    /* overflow: hidden; */
-    /* text-overflow: ellipsis; */ 
 }
 /* КОНЕЦ ФИКСОВ АДАПТИВНОСТИ ЗАГОЛОВКА */
+
+/* ⭐ НОВЫЕ СТИЛИ ДЛЯ РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ */
+#viewTitleEditForm {
+    display: none; 
+    flex-grow: 1;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+}
+#viewTitleInput {
+    flex-grow: 1;
+    min-width: 0;
+    padding: 8px 10px; 
+    margin-bottom: 0; 
+    font-size: 16px;
+}
+#viewTitleSaveBtn, #viewTitleCancelBtn {
+    flex-shrink: 0; 
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+/* КОНЕЦ НОВЫХ СТИЛЕЙ */
+
 
 /* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
 .view-modal:not(.edit-mode) #saveViewChangesBtn,
@@ -232,7 +255,7 @@ display: none !important;
     font-size: 18px; 
     line-height: 1; 
     transition: background 0.15s ease;
-    }
+}
 
 .icon-btn:hover {
     background: rgba(255,255,255,0.12); 
@@ -240,7 +263,7 @@ display: none !important;
 
 
 /* view body */
-.view-body{ display:flex; flex-direction:column; gap:10px; } /* Исходный gap: 10px */
+.view-body{ display:flex; flex-direction:column; gap:8px; } /* Уменьшен отступ между карточками упражнений */
 .view-ex{ background: rgba(255,255,255,0.04); padding:0; border-radius:10px; }
 
 
@@ -254,8 +277,15 @@ display: none;
 /* 1. РЕЖИМ ПРОСМОТРА (по умолчанию) */
 .view-modal:not(.edit-mode) .view-ex .view-display {
 display: flex; 
-padding: 10px; 
+padding: 8px 10px; /* Уменьшен padding */
 flex-direction: column; 
+}
+.view-modal:not(.edit-mode) .view-ex .view-display div[style*="margin-top:4px"] {
+    margin-top: 2px !important; /* Уменьшаем отступ для описания */
+}
+.view-modal:not(.edit-mode) .view-ex .view-display div[style*="color:rgba(255,255,255,0.7)"] {
+    margin-top: 4px !important; /* Отступ для мета-информации */
+    font-size: 14px;
 }
 
 /* 2. РЕЖИМ РЕДАКТИРОВАНИЯ СПИСКА */
@@ -263,7 +293,7 @@ flex-direction: column;
 display: flex;
 justify-content: space-between;
 align-items: center;
-padding: 8px 10px; 
+padding: 6px 10px; /* Уменьшен padding */
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -273,6 +303,9 @@ display: none !important;
 }
 
 /* Стилизация кнопок редактирования/удаления в режиме списка */
+.view-modal.edit-mode .view-edit-list-item .ex-actions {
+    gap: 4px; /* Уменьшен gap */
+}
 .view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small {
 background: rgba(255,255,255,0.1); 
 padding: 6px 8px; 
@@ -299,7 +332,23 @@ border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
 .view-modal.edit-mode .view-ex.is-editing input {
 margin-bottom: 8px;
+padding: 10px 12px; /* Уменьшен padding для полей ввода */
 }
+
+/* ⭐ ФИКС 3.4: Адаптивность кнопок сохранения/отмены в форме упражнения */
+.view-modal.edit-mode .view-ex.is-editing .view-edit-form .row.end {
+    display: flex; 
+    gap: 8px; 
+    align-items: center;
+    justify-content: flex-end; 
+    margin-top: 10px;
+}
+.view-modal.edit-mode .view-ex.is-editing .view-edit-form .row.end .btn { 
+    flex-basis: 50%; /* Делим пространство поровну */
+    min-width: 0; 
+}
+/* КОНЕЦ ФИКСА 3.4 */
+
 
 /* В режиме редактирования формы скрываем все остальное для этого элемента */
 .view-modal.edit-mode .view-ex.is-editing .view-display,
