@@ -21,7 +21,6 @@ if (topBar) {
     });
 }
 
-
 /* ====== Elements ====== */
 const workoutContainer = document.getElementById('workoutContainer');
 const createModal = document.getElementById('createModal');
@@ -61,10 +60,10 @@ const viewModal = document.getElementById('viewModal');
 // viewTitle (заменен на viewTitleDisplayContainer и viewTitleEditForm)
 const viewBody = document.getElementById('viewBody');
 const closeViewBtn = document.getElementById('closeViewBtn');
-const editWorkoutBtn = document.getElementById('editWorkoutBtn'); // Кнопка "Карандаш" в режиме просмотра
+const editWorkoutBtn = document.getElementById('editWorkoutBtn');
 const startWorkoutBtn = document.getElementById('startWorkoutBtn');
 const deleteWorkoutBtn = document.getElementById('deleteWorkoutBtn');
-const saveViewChangesBtn = document.getElementById('saveViewChangesBtn'); 
+const saveViewChangesBtn = document.getElementById('saveViewChangesBtn'); // Оставляем, хотя функционал изменен
 const cancelViewEditBtn = document.getElementById('cancelViewEditBtn');
 
 // Элементы управления режимом редактирования
@@ -81,7 +80,7 @@ const viewTitleInput = document.getElementById('viewTitleInput');
 const viewTitleSaveBtn = document.getElementById('viewTitleSaveBtn');
 const viewTitleCancelBtn = document.getElementById('viewTitleCancelBtn');
 
-// ⭐ Элементы формы добавления упражнения внутри View Modal 
+// ⭐ Элементы формы добавления упражнения внутри View Modal (Для фикса Бага 1)
 const viewExerciseForm = document.getElementById('viewExerciseForm');
 const viewExName = document.getElementById('viewExName');
 const viewExDesc = document.getElementById('viewExDesc');
@@ -103,7 +102,7 @@ let editingWorkoutId = null;
 let activeViewId = null;
 let editingViewExerciseIndex = null; 
 
-// ⭐ ГЛОБАЛЬНОЕ СОСТОЯНИЕ ДЛЯ View Modal
+// ⭐ ГЛОБАЛЬНОЕ СОСТОЯНИЕ ДЛЯ ФИКСА БАГА 2
 let isAddingNewExerciseInView = false;
 let currentWorkoutId = null; 
 
@@ -476,7 +475,7 @@ if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => closeProfil
 
 if (saveProfileBtn) {
     saveProfileBtn.addEventListener('click', async () => {
-        await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime?.value || '' });
+        if (notifyTime) await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value || '' });
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
         closeProfileModal(true);
     });
@@ -526,7 +525,9 @@ function startTitleEdit() {
         viewTitleInput.value = w.title;
         viewTitleInput.focus();
         
-        renderViewExercises();
+        // ВАЖНО: При редактировании названия, список упражнений нужно обновить, чтобы
+        // скрыть кнопки действий, так как editModeActions управляется в renderViewExercises
+        renderViewExercises(); 
     }
 }
 
@@ -576,10 +577,14 @@ function startEditViewExercise(idx) {
         isAddingNewExerciseInView = false;
     }
     
+    // ⭐ Устанавливаем индекс редактируемого упражнения
     editingViewExerciseIndex = idx;
+    
+    // ⭐ Перерисовываем список, чтобы показать форму редактирования вместо карточки
     renderViewExercises(); 
     
     setTimeout(() => {
+        // Фокусируемся на имени упражнения в появившейся форме
         const form = viewBody?.querySelector(`.view-edit-form[data-index="${idx}"]`);
         form?.querySelector('[data-field="name"]')?.focus();
     }, 0); 
@@ -596,7 +601,10 @@ function deleteViewExercise(idx) {
     
     if (confirm('Удалить это упражнение из тренировки?')) {
         w.exercises.splice(idx, 1);
-        saveWorkoutChanges(w);
+        // ⭐ Убедимся, что после удаления мы не находимся в режиме редактирования упражнения
+        editingViewExerciseIndex = null; 
+        saveWorkoutChanges(w); // Вызовет renderWorkouts()
+        renderViewExercises(); // Обновит список внутри модалки
     }
 }
 
@@ -609,14 +617,17 @@ async function saveOneViewExercise(idx) {
     
     const nameInput = form.querySelector('[data-field="name"]');
     const repsInput = form.querySelector('[data-field="reps"]');
-    
+    const descInput = form.querySelector('[data-field="desc"]');
+    const minInput = form.querySelector('[data-field="min"]');
+    const secInput = form.querySelector('[data-field="sec"]');
+
     if (!nameInput || !repsInput) return; // Проверка, чтобы избежать ошибок
 
     const name = nameInput.value.trim();
-    const desc = form.querySelector('[data-field="desc"]').value.trim();
+    const desc = descInput ? descInput.value.trim() : '';
     const reps = parseInt(repsInput.value) || 0;
-    const min = parseInt(form.querySelector('[data-field="min"]').value) || 0;
-    const sec = parseInt(form.querySelector('[data-field="sec"]').value) || 0;
+    const min = parseInt(minInput ? minInput.value : 0) || 0;
+    const sec = parseInt(secInput ? secInput.value : 0) || 0;
 
     if (!name || reps <= 0) {
         alert('Название и количество повторений (больше 0) обязательны');
@@ -628,7 +639,7 @@ async function saveOneViewExercise(idx) {
     const saved = await saveWorkoutChanges(w);
     
     if (saved) {
-        cancelEditViewExercise(); // Выходим из формы редактирования
+        cancelEditViewExercise(); // Выходим из формы редактирования и вызываем renderViewExercises
     }
 }
 
@@ -684,14 +695,16 @@ function renderViewExercises() {
     // Управление отображением кнопок в заголовке
     if (mainViewActions && editModeActions) {
         mainViewActions.style.display = isEditMode ? 'none' : 'flex'; 
-        // В режиме редактирования, кнопки видны только если не редактируется название И не открыта форма добавления
-        editModeActions.style.display = isEditMode && !isTitleEditing && !isAddingNewExerciseInView ? 'flex' : 'none'; 
+        // В режиме редактирования, кнопки видны только если не редактируется название И не открыта форма добавления И не редактируется упражнение
+        const showEditActions = isEditMode && !isTitleEditing && !isAddingNewExerciseInView && editingViewExerciseIndex === null;
+        editModeActions.style.display = showEditActions ? 'flex' : 'none'; 
     }
     
-    // ⭐ Управление видимостью кнопки-карандаша для названия
+    // ⭐ Управление видимостью кнопки-карандаша для названия (только если в режиме редактирования)
     if (viewTitleEditBtn) {
-        // Кнопка-карандаш видна, только если мы в режиме редактирования И НЕ редактируем сейчас форму названия И НЕ добавляем новое упражнение
-        viewTitleEditBtn.style.display = (isEditMode && !isTitleEditing && !isAddingNewExerciseInView) ? 'block' : 'none'; 
+        // Кнопка-карандаш видна, только если мы в режиме редактирования И НЕ редактируем название И НЕ добавляем новое упражнение И НЕ редактируем упражнение
+        const showTitleEditButton = isEditMode && !isTitleEditing && !isAddingNewExerciseInView && editingViewExerciseIndex === null;
+        viewTitleEditBtn.style.display = showTitleEditButton ? 'block' : 'none'; 
     }
     if (viewTitleDisplay) {
         viewTitleDisplay.textContent = w.title || w.name || 'Без названия';
@@ -760,7 +773,7 @@ function renderViewExercises() {
             // Отображаем либо блок редактирования, либо блок просмотра
             if (isEditMode && !isTitleEditing) {
                 if (isEditingThisExercise) {
-                    // Если мы редактируем это упражнение, показываем форму
+                    // Если мы редактируем это упражнение, показываем форму (FIX 1)
                     div.innerHTML = editForm;
                 } else {
                     // Если мы в режиме редактирования, но не редактируем это упражнение, показываем кнопки
@@ -906,7 +919,7 @@ if (viewTitleSaveBtn) viewTitleSaveBtn.addEventListener('click', saveTitleEdit);
 if (viewTitleCancelBtn) viewTitleCancelBtn.addEventListener('click', cancelTitleEdit);
 
 // =======================================================
-// ⭐ НОВЫЕ СЛУШАТЕЛИ ДЛЯ УПРАВЛЕНИЯ ФОРМОЙ УПРАЖНЕНИЙ ВНУТРИ VIEW MODAL
+// ⭐ НОВЫЕ СЛУШАТЕЛИ ДЛЯ УПРАВЛЕНИЯ ФОРМОЙ УПРАЖНЕНИЙ ВНУТРИ VIEW MODAL (Fix Баг 1)
 // =======================================================
 
 // Handler для кнопки "+ Добавить упражнение" в View Modal
@@ -915,8 +928,8 @@ if (addExerciseToViewBtn && viewExerciseForm && viewExName) {
         isAddingNewExerciseInView = true;
         
         // Отображаем форму и скрываем кнопку
-        viewExerciseForm.style.display = 'block';
-        addExerciseToViewBtn.style.display = 'none'; 
+        if (viewExerciseForm) viewExerciseForm.style.display = 'block';
+        if (addExerciseToViewBtn) addExerciseToViewBtn.style.display = 'none'; 
         
         // Очистка полей формы и фокус
         if (viewExName) viewExName.value = '';
@@ -925,7 +938,7 @@ if (addExerciseToViewBtn && viewExerciseForm && viewExName) {
         if (viewExMin) viewExMin.value = '';
         if (viewExSec) viewExSec.value = '';
         
-        viewExName.focus();
+        if (viewExName) viewExName.focus();
 
         renderViewExercises(); // Перерисовываем, чтобы скрыть лишние элементы и показать форму
     });
