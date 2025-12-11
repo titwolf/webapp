@@ -68,9 +68,17 @@ input[type="text"], input[type="number"], input[type="time"]{ width:100%; paddin
 .btn.add-ex{ background:transparent; border:1px dashed rgba(255,255,255,0.12); color:#fff; padding:10px 12px; border-radius:12px; }
 
 /* layout helpers */
-.row{ display:flex; gap:10px; }
+.row{ 
+    display:flex; 
+    gap:10px; 
+    align-items: center; /* ⭐ ДОБАВЛЕНО: Предотвращает вертикальное растяжение кнопок */
+}
 .row.end{ justify-content:flex-end; }
-.row .btn{ flex:1; }
+
+.row .btn{ 
+    flex-grow: 1; /* ⭐ ИЗМЕНЕНО: Используем flex-grow для горизонтального заполнения, 
+                  вместо комплексного flex: 1, чтобы избежать неожиданных эффектов */
+}
 
 /* exercise form */
 .exercise-form{ display:none; margin-top:8px; padding:10px 0; border-radius:12px; }

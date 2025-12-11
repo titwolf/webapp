@@ -190,7 +190,7 @@ function openCreate(editId = null, skipTitleStep = false) {
     createModal.classList.add('show'); 
     createModal.setAttribute('aria-hidden', 'false');
 
-    exerciseForm.classList.remove('active');
+    exerciseForm.classList.remove('active'); // Сбрасываем форму, чтобы начать чисто
 
     inputTrainingName.value = '';
     currentTempTitle = '';
@@ -222,7 +222,10 @@ function openCreate(editId = null, skipTitleStep = false) {
                 trainingTitleDisplay.textContent = currentTempTitle;
                 stepTitle.classList.remove('active');
                 stepExercises.classList.add('active');
-                initialFocus = exName;
+                
+                // ⭐ НОВОЕ ИЗМЕНЕНИЕ: Активируем форму упражнения сразу, минуя список
+                exerciseForm.classList.add('active'); 
+                initialFocus = exName; // Фокусируемся на первом поле формы упражнения
             } else {
                 stepTitle.classList.add('active');
                 stepExercises.classList.remove('active');
