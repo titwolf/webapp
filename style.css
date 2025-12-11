@@ -2,8 +2,8 @@
 * { box-sizing: border-box; margin:0; padding:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
 
 :root{
- --bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
- --accent:#8a5cff; --primary:#5d1fff; --white:#fff;
+--bg1:#1a002e; --bg2:#3f0071; --glass:rgba(255,255,255,0.08); --glass-2:rgba(255,255,255,0.12);
+--accent:#8a5cff; --primary:#5d1fff; --white:#fff;
 }
 
 html,body{height:100%; background: linear-gradient(135deg,var(--bg1),var(--bg2)); color:var(--white); overflow-x:hidden;}
@@ -106,12 +106,22 @@ visibility: hidden; /* Добавляем, чтобы гарантировать
 
 .view-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
 .view-actions{ display:flex; gap:8px; }
+
+/* ИСПРАВЛЕНИЕ 1: Скрываем кнопки сохранения/отмены в блоке .view-actions, если модалка не в edit-mode */
+.view-modal:not(.edit-mode) #saveViewChangesBtn,
+.view-modal:not(.edit-mode) #cancelViewEditBtn {
+    display: none !important;
+}
+
+/* Стили для всех кнопок-иконок в header/действиях */
 .icon-btn{ background:rgba(255,255,255,0.04); color:#fff; padding:8px 10px; border-radius:10px; border:none; cursor:pointer; }
 
 
 /* view body */
 .view-body{ display:flex; flex-direction:column; gap:8px; }
-.view-ex{ background: rgba(255,255,255,0.04); padding:0px; border-radius:10px; }
+/* УЛУЧШЕНИЕ 2.1: Убираем padding у view-ex, чтобы он не добавлял лишней высоты, 
+   т.к. мы будем padding внутри view-edit-list-item */
+.view-ex{ background: rgba(255,255,255,0.04); padding:0; border-radius:10px; }
 
 
 /* Общие правила: по умолчанию скрываем все режимы, кроме просмотра */
@@ -123,19 +133,22 @@ display: none;
 
 /* 1. РЕЖИМ ПРОСМОТРА (по умолчанию) */
 .view-modal:not(.edit-mode) .view-ex .view-display {
- display: flex; /* Показываем только текст */
+display: flex; /* Показываем только текст */
+padding: 10px; /* Возвращаем padding, чтобы содержимое не прилипало */
+flex-direction: column; /* Убедимся, что блоки текста идут вертикально */
 }
 
 /* 2. РЕЖИМ РЕДАКТИРОВАНИЯ СПИСКА (edit-mode, когда ни одно упражнение не редактируется) */
+/* УЛУЧШЕНИЕ 2.2: Уменьшаем вертикальный padding для компактности и улучшаем кнопки */
 .view-modal.edit-mode .view-ex:not(.is-editing) .view-edit-list-item {
 display: flex;
 justify-content: space-between;
 align-items: center;
-padding: 10px 0;
+padding: 8px 10px; /* Уменьшаем вертикальный padding, добавляем горизонтальный */
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Скрываем кнопки общего сохранения/отмены */
+/* Скрываем кнопки общего сохранения/отмены (Дублируем, чтобы гарантировать) */
 .view-modal.edit-mode #saveViewChangesBtn,
 .view-modal.edit-mode #cancelViewEditBtn {
 display: none !important;
@@ -143,24 +156,44 @@ display: none !important;
 
 /* Скрываем кнопку "Карандаш" (editWorkoutBtn) в режиме редактирования */
 .view-modal.edit-mode #editWorkoutBtn {
- display: none !important;
+display: none !important;
+}
+
+/* Стилизация кнопок редактирования/удаления в режиме списка */
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small {
+    /* Наследуем базовые icon-small, но делаем их чуть более заметными */
+    background: rgba(255,255,255,0.1); /* Чуть темнее */
+    padding: 6px 8px; /* Компактность */
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1; /* Для лучшего центрирования иконки/текста */
+}
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small:hover {
+    background: rgba(255,255,255,0.15);
+}
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"] {
+    background: rgba(255, 59, 48, 0.2); /* Красный акцент для удаления */
+}
+.view-modal.edit-mode .view-edit-list-item .ex-actions .icon-small[onclick*="deleteViewExercise"]:hover {
+    background: rgba(255, 59, 48, 0.3);
 }
 
 /* 3. РЕЖИМ РЕДАКТИРОВАНИЯ ФОРМЫ (edit-mode + is-editing) */
+/* УЛУЧШЕНИЕ 2.3: Уменьшаем padding формы редактирования */
 .view-modal.edit-mode .view-ex.is-editing .view-edit-form {
 display: block; /* Показываем форму редактирования */
-padding: 15px 0;
+padding: 10px; /* Уменьшаем вертикальный padding и добавляем горизонтальный */
 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .view-modal.edit-mode .view-ex.is-editing input {
- margin-bottom: 8px;
+margin-bottom: 8px;
 }
 
 /* В режиме редактирования формы скрываем все остальное для этого элемента */
 .view-modal.edit-mode .view-ex.is-editing .view-display,
 .view-modal.edit-mode .view-ex.is-editing .view-edit-list-item {
- display: none;
+display: none;
 }
 
 /* Стили для кнопки добавления (btn.add-ex) */
@@ -180,8 +213,8 @@ background: rgba(255, 255, 255, 0.2);
 
 /* responsive */
 @media (max-width:520px){
-  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
-  .top-bar{ padding:8px 12px; height:18vh; }
-  .profile-btn img{ width:56px; height:56px; }
-  .add-btn{ width:44px; height:44px; font-size:28px; }
+  .content{ grid-template-columns: repeat(2, minmax(120px,1fr)); padding:12px; }
+  .top-bar{ padding:8px 12px; height:18vh; }
+  .profile-btn img{ width:56px; height:56px; }
+  .add-btn{ width:44px; height:44px; font-size:28px; }
 }
