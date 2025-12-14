@@ -1,11 +1,23 @@
-.gowk-content {
-    padding-top: 20px;
-    padding-bottom: 80px;
+/* gowk.css - Стили для страницы плеера */
+
+/* --- Макет и Верхняя панель --- */
+
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: var(--color-bg); 
+    z-index: 1000;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    max-width: 500px;
-    margin: 0 auto;
+    padding: 0 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+body {
+    padding-top: 50px; /* Сдвигает контент ниже фиксированной шапки */
 }
 
 .top-title {
@@ -17,49 +29,95 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    color: var(--color-text-primary);
 }
 
-.current-exercise-info {
+.back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary); /* Цвет стрелки */
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.back-btn svg {
+    display: block;
+}
+
+.gowk-content {
+    padding-top: 20px;
+    padding-bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* --- Информация о состоянии (Над таймером) --- */
+.current-state-box {
     text-align: center;
     margin-bottom: 20px;
 }
-.current-exercise-info .ex-name {
+.current-state-box .ex-name {
     font-size: 1.5em;
     font-weight: 700;
+    color: var(--color-primary);
+    min-height: 24px; /* Чтобы избежать скачков при смене */
 }
-.current-exercise-info .ex-reps {
+.current-state-box .ex-reps {
     font-size: 1.1em;
     color: var(--color-text-secondary);
     margin-top: 5px;
+    min-height: 20px;
 }
 
-/* Таймер-контейнер и круг */
+/* --- Индикатор отдыха --- */
+#restIndicator {
+    margin-top: 10px;
+}
+.rest-text {
+    font-size: 1.2em;
+    font-weight: 800;
+    color: var(--color-warning);
+    margin: 0 0 5px 0;
+}
+.next-ex-hint {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+}
+.next-ex-hint span {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+
+/* --- Таймер-круг --- */
 .timer-container {
     width: 250px;
     height: 250px;
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 .timer-circle {
     width: 100%;
     height: 100%;
-    /* Гарантируем, что текст в SVG будет по центру */
-    text-align: center; 
 }
 
 .timer-background {
     fill: none;
     stroke: var(--color-card-bg-darker);
-    stroke-width: 5;
+    stroke-width: 8; /* Чуть толще */
 }
 
 .timer-progress {
     fill: none;
     stroke: var(--color-primary); 
-    stroke-width: 5;
+    stroke-width: 8;
     stroke-linecap: round;
-    /* Начало сверху */
     transform: rotate(-90deg); 
     transform-origin: 50% 50%;
     transition: stroke-dashoffset 0.1s linear; 
@@ -75,40 +133,36 @@
 }
 
 .timer-text {
-    font-size: 16px;
     fill: var(--color-text-primary);
     font-weight: 700;
     user-select: none;
+    transition: fill 0.3s;
+}
+
+.timer-text.large-text {
+    font-size: 20px; /* Для 'Начать тренировку' */
 }
 
 .timer-text.time {
-    font-size: 36px;
+    font-size: 42px; /* Для цифрового таймера */
     font-weight: 900;
 }
 
-/* Кнопка пропуска */
+.timer-text.paused-color {
+    fill: var(--color-text-secondary); /* Темно-серый для паузы */
+}
+
+/* --- Кнопка пропуска --- */
 .skip-btn {
     width: 100%;
     max-width: 250px;
-    margin-top: 10px;
-}
-
-/* Отдых таймер */
-.rest-timer {
-    font-size: 1.5em;
-    font-weight: 700;
-    color: var(--color-text-primary);
-    text-align: center;
-    margin-top: 20px;
-}
-.rest-timer #restTime {
-    color: var(--color-warning);
+    margin-bottom: 30px;
+    /* Стиль должен быть как у 'ghost' кнопки из style.css */
 }
 
 
-/* Список завершенных упражнений */
-.completed-list-header {
-    margin-top: 30px;
+/* --- Список упражнений --- */
+.exercises-list-header {
     font-size: 1.2em;
     font-weight: 600;
     color: var(--color-text-secondary);
@@ -118,91 +172,54 @@
     box-sizing: border-box;
 }
 
-.completed-list {
+.exercises-list {
     width: 100%;
     max-width: 500px;
     padding: 15px;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column-reverse; /* Порядок снизу вверх */
+    flex-direction: column; 
     gap: 10px;
 }
 
-.completed-card {
+.exercise-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--color-card-bg);
-    padding: 10px 15px;
+    padding: 15px;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 2px solid transparent; /* Обводка для статуса */
+    transition: border 0.3s;
 }
 
-.completed-card-status {
+.exercise-card-info {
+    flex-grow: 1;
+}
+
+.exercise-card-title {
     font-weight: 600;
+    font-size: 1.1em;
+}
+
+.exercise-card-meta {
     font-size: 0.9em;
+    color: var(--color-text-secondary);
+    margin-top: 3px;
 }
 
 .status-completed {
-    color: var(--color-success); /* Зеленый */
+    border-color: var(--color-success); /* Зеленая обводка */
 }
 
 .status-skipped {
-    color: var(--color-warning); /* Оранжевый */
+    border-color: var(--color-error); /* Красная обводка */
 }
 
-/* Галочка завершения (анимация) */
-#completionCheck .check-mark {
-    fill: none;
-    stroke: var(--color-success);
-    stroke-width: 5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: drawCheck 0.5s ease-out forwards;
-}
-
-#completionCheck .completed-text {
-    fill: var(--color-success);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-@keyframes drawCheck {
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-
-/* Модальное окно завершения */
-.end-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1001;
-    background-color: var(--color-bg);
-    border-radius: 15px;
-    padding: 25px;
-    max-width: 90%;
-    width: 350px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-
-.end-modal h2 {
-    margin-top: 0;
-    text-align: center;
-}
-
-.end-modal p {
-    text-align: center;
-    color: var(--color-text-secondary);
-    margin-bottom: 20px;
-}
-
-.end-modal .row {
-    margin-top: 10px;
+.current-highlight {
+    /* Дополнительное выделение текущего упражнения */
+    box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .hidden {

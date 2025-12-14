@@ -3,48 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FitPlan — Запуск тренировки</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="gowk.css"> <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>FitPlan — Тренировка</title>
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="gowk.css"> 
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
+    
     <div class="top-bar" id="topBar">
         <div class="left-group">
-            <button class="back-btn" id="backToMainBtn">← Назад</button>
+            <button class="back-btn" id="backToMainBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
         <h2 id="workoutTitle" class="top-title">Название тренировки</h2> 
         <div class="right-group"></div>
     </div>
 
     <main class="content-wrap gowk-content">
-        <div class="current-exercise-info">
+        
+        <div class="current-state-box">
             <p id="currentExName" class="ex-name">Упражнение</p>
             <p id="currentExReps" class="ex-reps">Повторения: -</p>
+            
+            <div id="restIndicator" class="hidden">
+                <p class="rest-text">ОТДЫХ</p>
+                <p class="next-ex-hint">Далее: <span id="nextExNameHint"></span></p>
+            </div>
         </div>
 
         <div class="timer-container">
-            
             <svg id="timerSvg" class="timer-circle" viewBox="0 0 100 100">
                 <circle class="timer-background" cx="50" cy="50" r="45"></circle>
                 <circle id="timerProgress" class="timer-progress" cx="50" cy="50" r="45"></circle>
+                
                 <g id="timerControl">
-                    <text id="timerText" x="50" y="55" text-anchor="middle" class="timer-text">Старт</text>
-                    <rect x="0" y="0" width="100" height="100" class="timer-hitbox"></rect>
-                </g>
-                <g id="completionCheck" class="hidden">
-                    <path class="check-mark" d="M30 50 L45 65 L70 40" />
-                    <text x="50" y="80" text-anchor="middle" class="completed-text">Выполнено</text>
+                    <text id="timerText" x="50" y="55" text-anchor="middle" class="timer-text large-text">Начать</text>
+                    <rect x="0" y="0" width="100" height="100" class="timer-hitbox"></rect> 
                 </g>
             </svg>
+            
         </div>
-        
-        <div id="restTimerDisplay" class="rest-timer hidden">Отдых: <span id="restTime">00:00</span></div>
         
         <button id="skipExerciseBtn" class="btn ghost skip-btn hidden">Пропустить упражнение</button>
 
 
-        <div class="completed-list-header">Пройденные:</div>
-        <div id="completedExercisesList" class="completed-list">
+        <div class="exercises-list-header">Упражнения:</div>
+        <div id="exercisesListContainer" class="exercises-list">
             </div>
 
     </main>
@@ -59,6 +66,20 @@
             </div>
             <div class="row">
                 <button class="btn ghost" id="exitToMainBtn">Выйти на главный экран</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="overlay hidden" id="skipConfirmOverlay"></div>
+    <section class="bottom-modal end-modal hidden" id="skipConfirmModal">
+        <div class="modal-inner">
+            <h2>Пропустить упражнение?</h2>
+            <p>Текущее упражнение будет отмечено как пропущенное.</p>
+            <div class="row">
+                <button class="btn primary" id="confirmSkipBtn">Да, пропустить</button>
+            </div>
+            <div class="row">
+                <button class="btn ghost" id="cancelSkipBtn">Отмена</button>
             </div>
         </div>
     </section>

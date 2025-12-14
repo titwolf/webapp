@@ -1,69 +1,57 @@
-/* ====== gowk.js (Полная логика плеера) ====== */
+/* ====== gowk.js (Переработанная логика плеера) ====== */
 
 /* ====== Общие элементы и TWA ====== */
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://localhost:5000"; // Оставлен для возможности будущего расширения
 let tgUser = { id: null, first_name: "Пользователь", username: "" };
 window.Telegram?.WebApp?.ready();
 if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
     tgUser = window.Telegram.WebApp.initDataUnsafe.user;
 }
 
-/* ====== API Helper (Оставлен для возможности будущего расширения) ====== */
-async function api(path, method = 'GET', data = null) {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: data ? JSON.stringify(data) : null
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        console.error(`API error ${res.status}: ${text}`);
-        throw new Error(`API error ${res.status}: ${text}`); 
-    }
-    const contentType = res.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) return res.json();
-    return null;
-}
-
 /* ====== Workout State & Constants ====== */
 let activeWorkout = null;
 let currentExIndex = 0;
-// 'initial', 'running', 'paused', 'completed', 'rest_running', 'rest_paused'
+// 'initial', 'running', 'paused', 'completed', 'rest'
 let timerState = 'initial'; 
 let totalSeconds = 0; 
 let remainingSeconds = 0;
 let timerInterval = null;
 
-const REST_TIME_SECONDS = 30; // Перерыв между упражнениями (30 секунд)
-
 /* ====== Elements (gowk.html) ====== */
 const workoutTitleEl = document.getElementById('workoutTitle');
 const currentExNameEl = document.getElementById('currentExName');
 const currentExRepsEl = document.getElementById('currentExReps');
-const timerSvg = document.getElementById('timerSvg');
+
 const timerProgressEl = document.getElementById('timerProgress');
 const timerControlEl = document.getElementById('timerControl');
 const timerTextEl = document.getElementById('timerText');
-const completionCheckEl = document.getElementById('completionCheck');
+
 const skipExerciseBtn = document.getElementById('skipExerciseBtn');
-const completedExercisesList = document.getElementById('completedExercisesList');
-const endWorkoutModal = document.getElementById('endWorkoutModal');
+const exercisesListContainer = document.getElementById('exercisesListContainer');
 const endWorkoutOverlay = document.getElementById('endWorkoutOverlay');
+const endWorkoutModal = document.getElementById('endWorkoutModal');
 const repeatWorkoutBtn = document.getElementById('repeatWorkoutBtn');
 const exitToMainBtn = document.getElementById('exitToMainBtn');
 const backToMainBtn = document.getElementById('backToMainBtn');
-const restTimerDisplay = document.getElementById('restTimerDisplay');
-const restTimeEl = document.getElementById('restTime');
+
+const restIndicator = document.getElementById('restIndicator');
+const nextExNameHint = document.getElementById('nextExNameHint');
+
+const skipConfirmModal = document.getElementById('skipConfirmModal');
+const skipConfirmOverlay = document.getElementById('skipConfirmOverlay');
+const confirmSkipBtn = document.getElementById('confirmSkipBtn');
+const cancelSkipBtn = document.getElementById('cancelSkipBtn');
+
 
 /* ====== Initialization and Data Loading ====== */
 
 function initWorkoutPlayer() {
-    // Загружаем данные тренировки из localStorage
     const storedWorkout = localStorage.getItem('activeWorkout');
     if (storedWorkout) {
         activeWorkout = JSON.parse(storedWorkout);
         if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
             setupUI();
+            renderExerciseList(); // Рендерим все карточки
             resetTimer(); 
             return;
         }
@@ -76,11 +64,15 @@ function initWorkoutPlayer() {
 function setupUI() {
     workoutTitleEl.textContent = activeWorkout.title;
     timerControlEl.addEventListener('click', handleTimerClick);
-    skipExerciseBtn.addEventListener('click', skipExercise);
+    skipExerciseBtn.addEventListener('click', showSkipConfirm);
     backToMainBtn.addEventListener('click', handleExit);
     repeatWorkoutBtn.addEventListener('click', repeatWorkout);
     exitToMainBtn.addEventListener('click', handleExit);
     
+    // Подтверждение пропуска
+    confirmSkipBtn.addEventListener('click', () => { skipExercise(true); });
+    cancelSkipBtn.addEventListener('click', () => { skipConfirmOverlay.classList.add('hidden'); skipConfirmModal.classList.add('hidden'); });
+
     // Вычисляем длину окружности для SVG (R=45)
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDasharray = circumference;
@@ -90,52 +82,67 @@ function setupUI() {
 /* ====== Timer Logic and Control ====== */
 
 /**
- * Обрабатывает клик по кругу. Запускает/Приостанавливает/Продолжает/Переходит.
+ * Обрабатывает клик по кругу.
  */
 function handleTimerClick() {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
 
-    if (timerState === 'initial' || timerState === 'paused' || timerState === 'rest_paused') {
-        startTimer(); // Запуск/Возобновление
-    } else if (timerState === 'running' || timerState === 'rest_running') {
-        pauseTimer(); // Пауза
+    if (timerState === 'initial' || timerState === 'rest') {
+        // Начать тренировку или Начать следующее упражнение
+        startTimer(); 
+    } else if (timerState === 'running') {
+        // Пауза
+        pauseTimer(); 
+    } else if (timerState === 'paused') {
+        // Возобновление
+        startTimer(); 
     } else if (timerState === 'completed') {
-        moveToNextStep(); // Переход к следующему упражнению/отдыху
+        // Упражнение без таймера
+        moveToNextStep(); 
     }
 }
 
 function startTimer() {
-    if (timerState === 'initial' || timerState === 'paused') {
-        // Запуск/Возобновление упражнения
+    clearInterval(timerInterval);
+
+    if (timerState === 'initial' || timerState === 'rest') {
+        // Сброс и подготовка к запуску
         timerState = 'running';
-        timerTextEl.classList.add('time');
-        skipExerciseBtn.classList.add('hidden');
-        completionCheckEl.classList.add('hidden');
+        restIndicator.classList.add('hidden');
         
-    } else if (timerState === 'rest_paused') {
-        // Возобновление отдыха
-        timerState = 'rest_running';
-        restTimerDisplay.classList.remove('hidden');
-        skipExerciseBtn.classList.add('hidden');
+        // Обновляем UI для первого запуска
+        timerTextEl.textContent = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
+        timerTextEl.classList.add('time');
+        timerTextEl.classList.remove('paused-color', 'large-text');
+        
+        if (remainingSeconds === 0) {
+            // Упражнение без таймера, ждем клика "Далее"
+            showCompletion('завершено', false); // Обновляем только карточку, не запускаем таймер
+            return;
+        }
+    } else if (timerState === 'paused') {
+        // Возобновление
+        timerState = 'running';
+        timerTextEl.classList.remove('paused-color');
+        skipExerciseBtn.classList.add('hidden'); // Кнопка пропуска исчезает
     }
 
-    clearInterval(timerInterval);
-    timerInterval = setInterval(tick, 1000);
+    // Запускаем тик, только если есть время
+    if (remainingSeconds > 0) {
+        timerInterval = setInterval(tick, 1000);
+    }
 }
 
 function pauseTimer() {
-    clearInterval(timerInterval);
+    if (timerState !== 'running') return;
     
-    if (timerState === 'running') {
-        timerState = 'paused';
-        timerTextEl.textContent = 'Пауза';
-        timerTextEl.classList.remove('time');
-        skipExerciseBtn.classList.remove('hidden'); // Появляется кнопка пропуска
-    } else if (timerState === 'rest_running') {
-        timerState = 'rest_paused';
-        timerTextEl.textContent = 'Отдых';
-        skipExerciseBtn.classList.add('hidden'); 
-    }
+    clearInterval(timerInterval);
+    timerState = 'paused';
+
+    // Визуальные изменения для паузы
+    timerTextEl.textContent = formatTime(remainingSeconds);
+    timerTextEl.classList.add('paused-color'); // Цифры становятся серыми
+    skipExerciseBtn.classList.remove('hidden'); // Появляется кнопка пропуска
 }
 
 function tick() {
@@ -143,17 +150,8 @@ function tick() {
 
     if (remainingSeconds <= 0) {
         clearInterval(timerInterval);
-        
-        if (timerState === 'running') {
-            // Упражнение завершено по таймеру
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-            showCompletionAnimation('завершено');
-            
-        } else if (timerState === 'rest_running') {
-            // Отдых завершен, переходим к следующему упражнению
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-            moveToNextExercise();
-        }
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        showCompletion('завершено'); // Упражнение завершено по таймеру
         return;
     }
 
@@ -161,37 +159,38 @@ function tick() {
 }
 
 function updateTimerDisplay() {
-    const minutes = Math.floor(remainingSeconds / 60);
-    const seconds = remainingSeconds % 60;
-    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    timerTextEl.textContent = formatTime(remainingSeconds);
     
-    if (timerState === 'running' || timerState === 'paused') {
-        timerTextEl.textContent = timeStr;
-    } else if (timerState === 'rest_running' || timerState === 'rest_paused') {
-        restTimeEl.textContent = timeStr;
-    }
-
     // Анимация круга (прогресс)
     const circumference = 2 * Math.PI * 45;
     const offset = circumference * (remainingSeconds / totalSeconds);
     timerProgressEl.style.strokeDashoffset = offset;
 }
 
+function formatTime(totalSec) {
+    const minutes = Math.floor(totalSec / 60);
+    const seconds = totalSec % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 /**
- * Установка параметров для нового упражнения или сброс
+ * Сброс таймера и установка UI для текущего упражнения
  */
 function resetTimer() {
     clearInterval(timerInterval);
-    completionCheckEl.classList.add('hidden');
     skipExerciseBtn.classList.add('hidden');
-    restTimerDisplay.classList.add('hidden');
+    restIndicator.classList.add('hidden');
 
+    // Проверяем завершение тренировки
     if (currentExIndex >= activeWorkout.exercises.length) {
         showEndWorkoutModal();
         return;
     }
-
+    
     const ex = activeWorkout.exercises[currentExIndex];
+    
+    // Обновляем текущее упражнение в списке
+    updateCurrentExerciseHighlight(ex.id);
     
     currentExNameEl.textContent = ex.name;
     currentExRepsEl.textContent = `Повторения: ${ex.reps}`;
@@ -200,54 +199,68 @@ function resetTimer() {
     remainingSeconds = totalSeconds;
 
     timerState = 'initial';
-    timerTextEl.textContent = totalSeconds > 0 ? 'Старт' : 'Далее';
-    timerTextEl.classList.remove('time');
+    timerTextEl.textContent = totalSeconds > 0 ? 'Начать тренировку' : 'Далее';
+    timerTextEl.classList.add('large-text');
+    timerTextEl.classList.remove('time', 'paused-color');
     
+    // Сброс круговой полосы
     const circumference = 2 * Math.PI * 45;
-    timerProgressEl.style.strokeDashoffset = circumference;
+    timerProgressEl.style.strokeDashoffset = totalSeconds > 0 ? circumference : 0;
     timerProgressEl.style.stroke = 'var(--color-primary)';
-
-    // Если время 0, упражнение считается выполненным сразу, но ждет клика "Далее"
-    if (totalSeconds === 0) {
-        timerState = 'completed';
-        timerProgressEl.style.strokeDashoffset = 0; 
-        timerProgressEl.style.stroke = 'var(--color-success)';
-        addCompletedCard(ex, 'завершено'); 
-    }
 }
 
 
-/* ====== Exercise Flow Control ====== */
+/* ====== Exercise Flow Control (Смена состояния) ====== */
 
-function showCompletionAnimation(status) {
-    // Добавляем карточку в список завершенных
-    addCompletedCard(activeWorkout.exercises[currentExIndex], status);
+/**
+ * Показывает завершение, обновляет UI и переходит в состояние 'completed'/'rest'.
+ */
+function showCompletion(status, move = true) {
     
-    // Показываем галочку (только если выполнено по таймеру)
-    if (status === 'завершено') {
-        completionCheckEl.classList.remove('hidden');
+    // 1. Обновляем карточку упражнения
+    const exId = activeWorkout.exercises[currentExIndex].id;
+    updateExerciseCardStatus(exId, status);
+    
+    // 2. Визуальное завершение (если есть таймер)
+    if (totalSeconds > 0) {
+        // Устанавливаем полный прогресс
+        timerProgressEl.style.strokeDashoffset = 0;
+        timerProgressEl.style.stroke = (status === 'завершено') ? 'var(--color-success)' : 'var(--color-error)';
     }
-    
+
+    timerState = 'completed'; // Переход в состояние, ожидающее следующего шага
     timerTextEl.textContent = 'Далее';
-    timerTextEl.classList.remove('time');
-
-    // Снимаем полосу
-    const circumference = 2 * Math.PI * 45;
-    timerProgressEl.style.strokeDashoffset = 0;
-    timerProgressEl.style.stroke = (status === 'завершено') ? 'var(--color-success)' : 'var(--color-warning)';
-    
-    timerState = 'completed';
-}
-
-function skipExercise() {
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
-    clearInterval(timerInterval);
-    showCompletionAnimation('пропущено');
+    timerTextEl.classList.remove('time', 'paused-color');
+    timerTextEl.classList.add('large-text');
     skipExerciseBtn.classList.add('hidden');
+
+    if (move) moveToNextStep();
 }
 
 /**
- * Движение к следующему шагу (отдых или упражнение)
+ * Показывает модальное окно подтверждения пропуска.
+ */
+function showSkipConfirm() {
+    skipConfirmOverlay.classList.remove('hidden');
+    skipConfirmModal.classList.remove('hidden');
+}
+
+/**
+ * Пропускает упражнение (после подтверждения).
+ */
+function skipExercise(confirmed) {
+    if (!confirmed) return;
+
+    skipConfirmOverlay.classList.add('hidden');
+    skipConfirmModal.classList.add('hidden');
+
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
+    clearInterval(timerInterval);
+    showCompletion('пропущено');
+}
+
+/**
+ * Движение к следующему шагу (отдых или завершение)
  */
 function moveToNextStep() {
     currentExIndex++;
@@ -259,51 +272,85 @@ function moveToNextStep() {
     }
     
     // Начинаем отдых
-    startRestTimer();
+    startRestState();
 }
 
-function startRestTimer() {
-    currentExNameEl.textContent = "Отдых";
-    currentExRepsEl.textContent = `Перерыв между подходами (${REST_TIME_SECONDS} сек)`;
+function startRestState() {
     
-    totalSeconds = REST_TIME_SECONDS;
-    remainingSeconds = REST_TIME_SECONDS;
+    const nextEx = activeWorkout.exercises[currentExIndex];
     
-    timerState = 'rest_running';
-    timerTextEl.textContent = 'Отдых';
-    timerTextEl.classList.remove('time');
-    restTimerDisplay.classList.remove('hidden');
-    completionCheckEl.classList.add('hidden');
+    currentExNameEl.textContent = "ПЕРЕРЫВ";
+    currentExRepsEl.textContent = `Готовьтесь к следующему подходу`;
     
-    const circumference = 2 * Math.PI * 45;
-    timerProgressEl.style.strokeDashoffset = circumference;
+    restIndicator.classList.remove('hidden');
+    nextExNameHint.textContent = nextEx.name;
+    
+    // Скрываем полосу
+    timerProgressEl.style.strokeDashoffset = 2 * Math.PI * 45;
     timerProgressEl.style.stroke = 'var(--color-warning)';
-
-    // Автоматический старт отдыха
-    clearInterval(timerInterval);
-    timerInterval = setInterval(tick, 1000);
+    
+    timerState = 'rest'; // Неограниченный отдых
+    timerTextEl.textContent = 'СТАРТ';
+    timerTextEl.classList.add('large-text');
+    timerTextEl.classList.remove('time', 'paused-color');
 }
 
-function moveToNextExercise() {
-    resetTimer(); // Начнет с "Старт" для нового упражнения
+
+/* ====== Exercise List UI ====== */
+
+function renderExerciseList() {
+    exercisesListContainer.innerHTML = '';
+    
+    activeWorkout.exercises.forEach((ex, index) => {
+        const div = document.createElement('div');
+        div.className = 'exercise-card';
+        div.setAttribute('data-ex-id', ex.id);
+        
+        let timeStr = '';
+        if (ex.min > 0 || ex.sec > 0) {
+            timeStr = ` | ${ex.min > 0 ? ex.min + ' мин' : ''} ${ex.sec > 0 ? ex.sec + ' сек' : ''}`.trim();
+        }
+
+        div.innerHTML = `
+            <div class="exercise-card-info">
+                <div class="exercise-card-title">${index + 1}. ${ex.name}</div>
+                <div class="exercise-card-meta">${ex.reps} повт.${timeStr}</div>
+            </div>
+            <div class="exercise-card-status"></div>
+        `;
+        
+        exercisesListContainer.appendChild(div);
+    });
 }
 
-/* ====== Completed List UI ====== */
+function updateExerciseCardStatus(exId, status) {
+    const card = document.querySelector(`.exercise-card[data-ex-id='${exId}']`);
+    if (card) {
+        // Убираем предыдущие классы статуса
+        card.classList.remove('status-completed', 'status-skipped', 'current-highlight');
+        
+        // Добавляем новый класс статуса
+        if (status === 'завершено') {
+            card.classList.add('status-completed');
+        } else if (status === 'пропущено') {
+            card.classList.add('status-skipped');
+        }
+    }
+}
 
-function addCompletedCard(exercise, status) {
-    const div = document.createElement('div');
-    const statusClass = status === 'завершено' ? 'status-completed' : 'status-skipped';
+function updateCurrentExerciseHighlight(exId) {
+    // Снимаем выделение со всех
+    document.querySelectorAll('.exercise-card').forEach(card => {
+        card.classList.remove('current-highlight');
+    });
     
-    div.className = 'completed-card';
-    div.innerHTML = `
-        <div class="completed-card-info">
-            <div class="completed-card-title">${exercise.name}</div>
-            <div class="completed-card-meta">${exercise.reps} повт.</div>
-        </div>
-        <div class="completed-card-status ${statusClass}">${status}</div>
-    `;
-    
-    completedExercisesList.prepend(div); 
+    // Добавляем выделение текущему
+    const currentCard = document.querySelector(`.exercise-card[data-ex-id='${exId}']`);
+    if (currentCard) {
+        currentCard.classList.add('current-highlight');
+        // Прокрутка к текущему элементу (опционально)
+        currentCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 
@@ -313,15 +360,18 @@ function showEndWorkoutModal() {
     endWorkoutOverlay.classList.remove('hidden');
     endWorkoutModal.classList.remove('hidden');
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-    
-    // ⭐ УДАЛЕНО: Здесь должна была быть логика обновления счетчика завершенных тренировок.
 }
 
 function repeatWorkout() {
     endWorkoutOverlay.classList.add('hidden');
     endWorkoutModal.classList.add('hidden');
     currentExIndex = 0;
-    completedExercisesList.innerHTML = '';
+    
+    // Сброс статусов всех карточек
+    document.querySelectorAll('.exercise-card').forEach(card => {
+        card.classList.remove('status-completed', 'status-skipped', 'current-highlight');
+    });
+    
     resetTimer();
 }
 
