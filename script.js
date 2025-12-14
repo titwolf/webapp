@@ -911,6 +911,29 @@ function openView(id, showOverlayFlag = true) {
     renderViewExercises();
 }
 
+// ⭐ ДОБАВЛЕНИЕ: Логика запуска тренировки
+if (startWorkoutBtn) {
+    startWorkoutBtn.addEventListener('click', () => {
+        const w = workouts.find(x => Number(x.id) === Number(activeViewId));
+        if (!w) {
+            tAlert("Ошибка: Тренировка не найдена.");
+            return;
+        }
+
+        // Запрос подтверждения
+        window.Telegram?.WebApp?.showConfirm('Начать тренировку "' + w.title + '"?', (isConfirmed) => {
+            if (isConfirmed) {
+                // 1. Сохраняем данные тренировки в localStorage.
+                localStorage.setItem('activeWorkout', JSON.stringify(w));
+                
+                // 2. Переход на страницу gowk.html
+                closeView(false); // Закрываем модальное окно просмотра
+                window.location.href = 'gowk.html';
+            }
+        });
+    });
+}
+
 /**
  * Закрывает модальное окно просмотра.
  * @param {boolean} hideOverlayFlag Скрывать ли оверлей (по умолчанию true).

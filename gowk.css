@@ -1,0 +1,210 @@
+.gowk-content {
+    padding-top: 20px;
+    padding-bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.top-title {
+    flex-grow: 1;
+    text-align: center;
+    margin: 0 10px;
+    font-size: 1.2em;
+    font-weight: 600;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.current-exercise-info {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.current-exercise-info .ex-name {
+    font-size: 1.5em;
+    font-weight: 700;
+}
+.current-exercise-info .ex-reps {
+    font-size: 1.1em;
+    color: var(--color-text-secondary);
+    margin-top: 5px;
+}
+
+/* Таймер-контейнер и круг */
+.timer-container {
+    width: 250px;
+    height: 250px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timer-circle {
+    width: 100%;
+    height: 100%;
+    /* Гарантируем, что текст в SVG будет по центру */
+    text-align: center; 
+}
+
+.timer-background {
+    fill: none;
+    stroke: var(--color-card-bg-darker);
+    stroke-width: 5;
+}
+
+.timer-progress {
+    fill: none;
+    stroke: var(--color-primary); 
+    stroke-width: 5;
+    stroke-linecap: round;
+    /* Начало сверху */
+    transform: rotate(-90deg); 
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.1s linear; 
+}
+
+#timerControl {
+    cursor: pointer;
+}
+
+.timer-hitbox {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.timer-text {
+    font-size: 16px;
+    fill: var(--color-text-primary);
+    font-weight: 700;
+    user-select: none;
+}
+
+.timer-text.time {
+    font-size: 36px;
+    font-weight: 900;
+}
+
+/* Кнопка пропуска */
+.skip-btn {
+    width: 100%;
+    max-width: 250px;
+    margin-top: 10px;
+}
+
+/* Отдых таймер */
+.rest-timer {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    text-align: center;
+    margin-top: 20px;
+}
+.rest-timer #restTime {
+    color: var(--color-warning);
+}
+
+
+/* Список завершенных упражнений */
+.completed-list-header {
+    margin-top: 30px;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    width: 100%;
+    max-width: 500px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.completed-list {
+    width: 100%;
+    max-width: 500px;
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column-reverse; /* Порядок снизу вверх */
+    gap: 10px;
+}
+
+.completed-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-card-bg);
+    padding: 10px 15px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.completed-card-status {
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.status-completed {
+    color: var(--color-success); /* Зеленый */
+}
+
+.status-skipped {
+    color: var(--color-warning); /* Оранжевый */
+}
+
+/* Галочка завершения (анимация) */
+#completionCheck .check-mark {
+    fill: none;
+    stroke: var(--color-success);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: drawCheck 0.5s ease-out forwards;
+}
+
+#completionCheck .completed-text {
+    fill: var(--color-success);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+@keyframes drawCheck {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Модальное окно завершения */
+.end-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    background-color: var(--color-bg);
+    border-radius: 15px;
+    padding: 25px;
+    max-width: 90%;
+    width: 350px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.end-modal h2 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.end-modal p {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+}
+
+.end-modal .row {
+    margin-top: 10px;
+}
+
+.hidden {
+    display: none !important;
+}
