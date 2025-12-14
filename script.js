@@ -204,35 +204,35 @@ async function saveWorkoutToServer(payload) {
 
 // ⭐ ЛОГИКА УДАЛЕНИЯ ТРЕНИРОВКИ С ИСПОЛЬЗОВАНИЕМ TWA showConfirm
 async function performDeleteWorkout(id) {
+    try {
+        // API call (должен вернуть 200 OK после исправления сервера)
+        const response = await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
 
+        // Если сервер возвращает 200 OK (response.ok = true) и JSON { ok: true }
+        if (response && response.ok) { 
+            workouts = workouts.filter(w => w.id !== id);
+            renderWorkouts();
 
-    const response = await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
-
-
-
-    if (response && response.ok) { // Предполагая, что api возвращает ok
-
-
-        workouts = workouts.filter(w => w.id !== id);
-
-
-        renderWorkouts();
-
-
-        // ⭐ Логика закрытия модального окна просмотра (если удалена просматриваемая)
-        if (Number(activeViewId) === Number(id)) {
-            viewModal?.classList.remove('open');
-            overlay?.classList.remove('visible');
-            activeViewId = null;
-        }
-        return true;
-    } 
-    else {
-        tAlert("Ошибка при удалении тренировки.");
+            // ⭐ Используем closeView() для корректной очистки всех состояний модального окна
+            if (Number(activeViewId) === Number(id)) {
+                closeView(); 
+            }
+            
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+            return true;
+        } 
+        
+        // Эта ветка нужна на случай, если сервер вернет 200, но без ok: true
+        tAlert("Ошибка при удалении тренировки: сервер вернул неизвестный ответ.");
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
         return false;
 
+    } catch (err) {
+        console.error(err); 
+        tAlert("Ошибка при удалении тренировки. Проверьте логи сервера или консоль браузера.");
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+        return false;
     }
-
 }
 
 window.deleteWorkout = function(id) {
