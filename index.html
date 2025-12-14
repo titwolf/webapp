@@ -49,10 +49,10 @@
         <div class="exercise-form" id="exerciseForm" aria-hidden="true">
           <input id="exName" type="text" placeholder="Название упражнения *">
           <input id="exDesc" type="text" placeholder="Описание (необязательно)">
-          <input id="exReps" type="number" placeholder="Повторения *" min="1">
+          <input id="exReps" type="number" placeholder="Повторения *" min="1" max = "9999">
           <div class="time-row">
-            <input id="exMin" type="number" placeholder="Мин" min="0">
-            <input id="exSec" type="number" placeholder="Сек" min="0" max="59">
+            <input id="exMin" type="number" placeholder="Мин" min="0" max = "59" value="0">
+            <input id="exSec" type="number" placeholder="Сек" min="0" max="59" value="0">
           </div>
           <div class="row">
             <button class="btn primary" id="saveExerciseBtn">Сохранить упражнение</button>
@@ -111,10 +111,10 @@
         <h2>Добавить упражнение</h2>
         <input id="viewExName" type="text" placeholder="Название упражнения *">
         <input id="viewExDesc" type="text" placeholder="Описание (необязательно)">
-        <input id="viewExReps" type="number" placeholder="Повторения *" min="1">
+        <input id="viewExReps" type="number" placeholder="Повторения *" min="1" max="9999">
         <div class="time-row">
-          <input id="viewExMin" type="number" placeholder="Мин" min="0">
-          <input id="viewExSec" type="number" placeholder="Сек" min="0" max="59">
+          <input id="viewExMin" type="number" placeholder="Мин" min="0" max = "59" value="0">
+          <input id="viewExSec" type="number" placeholder="Сек" min="0" max="59" value="0">
         </div>
         <div class="row end" style="margin-top: 15px;">
           <button class="btn primary" id="saveNewViewExerciseBtn">Сохранить</button>

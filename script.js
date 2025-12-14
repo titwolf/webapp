@@ -106,6 +106,16 @@ let editingViewExerciseIndex = null;
 let isAddingNewExerciseInView = false;
 let currentWorkoutId = null; 
 
+
+// ⭐ НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ TWA
+function tAlert(message) {
+    if (window.Telegram?.WebApp?.showAlert) {
+        window.Telegram.WebApp.showAlert(message);
+    } else {
+        alert(message);
+    }
+}
+
 /* ====== API Helper ====== */
 async function api(path, method = 'GET', data = null) {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -192,8 +202,54 @@ async function saveWorkoutToServer(payload) {
     return saved;
 }
 
-async function deleteWorkoutFromServer(id) {
-    return await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
+// ⭐ ЛОГИКА УДАЛЕНИЯ ТРЕНИРОВКИ С ИСПОЛЬЗОВАНИЕМ TWA showConfirm
+async function performDeleteWorkout(id) {
+
+
+    const response = await api('/api/delete_workout', 'POST', { id: id, user_id: tgUser.id });
+
+
+
+    if (response && response.ok) { // Предполагая, что api возвращает ok
+
+
+        workouts = workouts.filter(w => w.id !== id);
+
+
+        renderWorkouts();
+
+
+        // ⭐ Логика закрытия модального окна просмотра (если удалена просматриваемая)
+        if (Number(activeViewId) === Number(id)) {
+            viewModal?.classList.remove('open');
+            overlay?.classList.remove('visible');
+            activeViewId = null;
+        }
+        return true;
+    } 
+    else {
+        tAlert("Ошибка при удалении тренировки.");
+        return false;
+
+    }
+
+}
+
+window.deleteWorkout = function(id) {
+    const message = "Вы уверены, что хотите удалить эту тренировку?";
+    
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showConfirm(message, async (isConfirmed) => {
+            if (isConfirmed) {
+                await performDeleteWorkout(id);
+            }
+        });
+    } else {
+        // Fallback для web-тестирования
+        if (confirm(message)) {
+            performDeleteWorkout(id);
+        }
+    }
 }
 
 /* ====== Overlay & Create Modal ====== */
@@ -296,7 +352,12 @@ if (toggleExerciseFormBtn && exerciseForm && exName) {
 
 if (cancelExerciseBtn && exName && exDesc && exReps && exMin && exSec && exerciseForm) {
     cancelExerciseBtn.addEventListener('click', () => {
-        exName.value = exDesc.value = exReps.value = exMin.value = exSec.value = '';
+        exName.value = '';
+        if(exDesc) exDesc.value = '';
+        exReps.value = '';
+        // ⭐ ИЗМЕНЕНИЕ: Устанавливаем '0' для полей времени
+        if(exMin) exMin.value = '0'; 
+        if(exSec) exSec.value = '0'; 
         exerciseForm.classList.remove('active');
     });
 }
@@ -310,7 +371,7 @@ if (saveExerciseBtn && exName && exReps && exerciseForm) {
         const min = parseInt(exMin ? exMin.value : 0 || 0);
         const sec = parseInt(exSec ? exSec.value : 0 || 0);
 
-        if (!name || !reps || reps < 1) { alert('Название и количество повторений (больше 0) обязательны'); return; }
+        if (!name || !reps || reps < 1) { tAlert('Название и количество повторений (больше 0) обязательны'); return; }
 
         const editIndex = saveExerciseBtn.dataset.editIndex;
         if (editIndex !== undefined && editIndex !== '') {
@@ -321,7 +382,11 @@ if (saveExerciseBtn && exName && exReps && exerciseForm) {
             tempExercises.push({ name, desc, reps, min, sec, sets: 1 });
         }
 
-        exName.value = desc.value = exReps.value = exMin.value = exSec.value = '';
+        exName.value = '';
+        if(exDesc) exDesc.value = ''; 
+        exReps.value = '';
+        if(exMin) exMin.value = '0'; 
+        if(exSec) exSec.value = '0';
         exerciseForm.classList.remove('active');
         renderExerciseCards();
         updateSaveTrainingBtn();
@@ -333,7 +398,7 @@ if (saveExerciseBtn && exName && exReps && exerciseForm) {
 if (toExercisesBtn && inputTrainingName && trainingTitleDisplay && stepTitle && stepExercises && toggleExerciseFormBtn) {
     toExercisesBtn.addEventListener('click', () => {
         const name = inputTrainingName.value.trim();
-        if (!name) { alert('Введите название тренировки'); return; }
+        if (!name) { tAlert('Введите название тренировки'); return; }
         currentTempTitle = name;
         trainingTitleDisplay.textContent = name;
         stepTitle.classList.remove('active');
@@ -355,7 +420,7 @@ if (backToTitleBtn && stepTitle && stepExercises) {
 /* ====== Save workout (Create Modal) ====== */
 if (saveTrainingBtn) {
     saveTrainingBtn.addEventListener('click', async () => {
-        if (tempExercises.length < 1) { alert('Добавьте хотя бы одно упражнение'); return; }
+        if (tempExercises.length < 1) { tAlert('Добавьте хотя бы одно упражнение'); return; }
         const payload = {
             id: editingWorkoutId || 0,
             user_id: tgUser.id,
@@ -389,7 +454,7 @@ if (saveTrainingBtn) {
             closeCreate();
         } catch (err) {
             console.error("saveTraining error:", err);
-            alert("Ошибка при сохранении тренировки. Посмотрите консоль.");
+            tAlert("Ошибка при сохранении тренировки. Посмотрите консоль.");
         }
     });
 }
@@ -507,22 +572,22 @@ async function saveWorkoutChanges(workout) {
         }))
     };
     
-    try {
+    try {
         // Теперь saveWorkoutToServer будет использовать корректный payload
-        const savedWorkout = await saveWorkoutToServer(payload); 
-        
-        const index = workouts.findIndex(x => Number(x.id) === Number(activeViewId));
-        if (index > -1) workouts[index] = savedWorkout;
+        const savedWorkout = await saveWorkoutToServer(payload); 
+        
+        const index = workouts.findIndex(x => Number(x.id) === Number(activeViewId));
+        if (index > -1) workouts[index] = savedWorkout;
 
-        renderWorkouts(); 
-        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        return true;
-    } catch (err) {
-        console.error("Ошибка при сохранении редактирования:", err);
-        alert("Ошибка при сохранении. Посмотрите консоль.");
-        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
-        return false;
-    }
+        renderWorkouts(); 
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        return true;
+    } catch (err) {
+        console.error("Ошибка при сохранении редактирования:", err);
+        tAlert("Ошибка при сохранении. Посмотрите консоль.");
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+        return false;
+    }
 }
 
 // ⭐ ЛОГИКА РЕДАКТИРОВАНИЯ НАЗВАНИЯ ТРЕНИРОВКИ
@@ -559,7 +624,7 @@ async function saveTitleEdit() {
     if (!viewTitleInput) return;
     const newTitle = viewTitleInput.value.trim();
     if (!newTitle) {
-        alert("Название тренировки не может быть пустым.");
+        tAlert("Название тренировки не может быть пустым.");
         viewTitleInput.focus();
         return;
     }
@@ -609,24 +674,47 @@ function cancelEditViewExercise() {
     renderViewExercises();
 }
 
-function deleteViewExercise(idx) {
-    const w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w) return;
+window.deleteViewExercise = function(index) {
+    const message = "Удалить это упражнение?";
+
+    // Логика удаления (API вызов и обновление UI)
+    const deleteLogic = async () => {
+        let w = workouts.find(x => Number(x.id) === Number(activeViewId));
+        if (!w || !w.exercises[index]) return;
+
+        w.exercises.splice(index, 1);
+        
+        // saveWorkoutChanges вызывает API и обновляет 'workouts'
+        const saved = await saveWorkoutChanges(w); 
+
+        if (saved) {
+            renderViewExercises();
+            
+            if (!w.exercises.some(ex => ex.isEditing) && !isAddingNewExerciseInView) {
+                exitEditMode();
+            }
+        }
+    };
     
-    if (confirm('Удалить это упражнение из тренировки?')) {
-        w.exercises.splice(idx, 1);
-        // ⭐ Убедимся, что после удаления мы не находимся в режиме редактирования упражнения
-        editingViewExerciseIndex = null; 
-        saveWorkoutChanges(w); // Вызовет renderWorkouts()
-        renderViewExercises(); // Обновит список внутри модалки
+    if (window.Telegram?.WebApp) {
+        // Используем TWA showConfirm
+        window.Telegram.WebApp.showConfirm(message, async (isConfirmed) => {
+            if (isConfirmed) {
+                await deleteLogic();
+            }
+        });
+    } else {
+        // Fallback
+        if (confirm(message)) {
+            deleteLogic();
+        }
     }
 }
 
 // ~~~~~~~~~~~~~~~~~~~~
 // Функция saveOneViewExercise
 // ~~~~~~~~~~~~~~~~~~~~
-async function saveOneViewExercise(event, idx) {
-    event.preventDefault();
+async function saveOneViewExercise(idx) {
 
     const item = document.querySelectorAll('.view-ex')[idx];
     if (!item) return;
@@ -640,12 +728,12 @@ async function saveOneViewExercise(event, idx) {
     const sec = Number(item.querySelector('input[data-field="sec"]')?.value) || 0;
 
     if (!name || reps <= 0) {
-        alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
+        tAlert('Пожалуйста, введите название и корректное количество повторений (Reps).');
         return;
     }
 
     let w = workouts.find(x => Number(x.id) === Number(activeViewId));
-    if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
+    if (!w) { tAlert('Ошибка: Тренировка не найдена.'); return; }
     
     // Обновляем объект в памяти
     const ex = w.exercises[idx];
@@ -875,21 +963,11 @@ if (editWorkoutBtn) {
     });
 }
 
+// ⭐ ИСПРАВЛЕНИЕ: ЗАМЕНА NATIVE confirm() НА TWA window.deleteWorkout(id)
 if (deleteWorkoutBtn) {
-    deleteWorkoutBtn.addEventListener('click', async () => {
+    deleteWorkoutBtn.addEventListener('click', () => {
         if (activeViewId === null) return;
-        if (!confirm("Удалить эту тренировку?")) return;
-        try {
-            await deleteWorkoutFromServer(Number(activeViewId));
-            workouts = workouts.filter(w => Number(w.id) !== Number(activeViewId));
-            renderWorkouts();
-            closeView();
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        } catch (err) { 
-            console.error(err); 
-            alert("Ошибка при удалении тренировки."); 
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
-        }
+        window.deleteWorkout(Number(activeViewId)); 
     });
 }
 
@@ -914,7 +992,7 @@ if (exitEditModeBtn) exitEditModeBtn.addEventListener('click', () => {
 if (saveViewChangesBtn) {
     saveViewChangesBtn.addEventListener('click', async () => {
         // Эта кнопка теперь служит только информационным сообщением, как вы просили
-        alert("Кнопка 'Сохранить изменения' теперь не используется. Сохранение происходит автоматически при редактировании названия или при нажатии 'Сохранить упражнение'.");
+        tAlert("Кнопка 'Сохранить изменения' теперь не используется. Сохранение происходит автоматически при редактировании названия или при нажатии 'Сохранить упражнение'.");
     });
 }
 
@@ -940,8 +1018,8 @@ if (addExerciseToViewBtn && viewExerciseForm && viewExName) {
         if (viewExName) viewExName.value = '';
         if (viewExDesc) viewExDesc.value = '';
         if (viewExReps) viewExReps.value = '';
-        if (viewExMin) viewExMin.value = '';
-        if (viewExSec) viewExSec.value = '';
+        if (viewExMin) viewExMin.value = '0';
+        if (viewExSec) viewExSec.value = '0';
         
         if (viewExName) viewExName.focus();
 
@@ -976,7 +1054,7 @@ if (saveNewViewExerciseBtn) {
         const sec = parseInt(viewExSec?.value || 0);
 
         if (!name || isNaN(reps) || reps < 1) {
-            alert('Пожалуйста, введите название и корректное количество повторений (Reps).');
+            tAlert('Пожалуйста, введите название и корректное количество повторений (Reps).');
             return;
         }
 
@@ -992,7 +1070,7 @@ if (saveNewViewExerciseBtn) {
         };
         
         let w = workouts.find(x => Number(x.id) === Number(activeViewId));
-        if (!w) { alert('Ошибка: Тренировка не найдена.'); return; }
+        if (!w) { tAlert('Ошибка: Тренировка не найдена.'); return; }
         
         if (!w.exercises) w.exercises = [];
         w.exercises.push(newExercise);
