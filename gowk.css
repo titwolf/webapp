@@ -1,7 +1,39 @@
-/* gowk.css - Стили для страницы плеера */
+/* ====== gowk.css - Самодостаточные стили для плеера тренировок ====== */
 
-/* --- Макет и Верхняя панель --- */
+/* --- Базовые переменные (Эмуляция общих стилей, если style.css недоступен) --- */
+:root {
+    /* Цвета для темной/светлой темы (Предполагаем темную тему, типичную для TWA) */
+    --color-bg: #1e1e1e; /* Фон */
+    --color-card-bg: #2d2d2d; /* Фон карточек */
+    --color-card-bg-darker: #242424; 
+    --color-text-primary: #ffffff; /* Основной текст */
+    --color-text-secondary: #aaaaaa; /* Второстепенный текст / Пауза */
+    
+    /* Основные цвета */
+    --color-primary: #007bff; /* Основной акцент (синий) */
+    --color-primary-light: #52a1ff;
+    --color-success: #28a745; /* Зеленый */
+    --color-error: #dc3545; /* Красный */
+    --color-warning: #ffc107; /* Желтый/Оранжевый (для отдыха) */
+}
 
+/* --- Общие стили для Body и Сброс --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    margin: 0;
+    padding-top: 50px; /* ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отступ для фиксированной шапки */
+    box-sizing: border-box;
+}
+*, *::before, *::after {
+    box-sizing: inherit;
+}
+.hidden {
+    display: none !important;
+}
+
+/* --- Верхняя панель (Top Bar) --- */
 .top-bar {
     position: fixed;
     top: 0;
@@ -13,11 +45,7 @@
     display: flex;
     align-items: center;
     padding: 0 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-body {
-    padding-top: 50px; /* Сдвигает контент ниже фиксированной шапки */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .top-title {
@@ -36,7 +64,7 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--color-text-secondary); /* Цвет стрелки */
+    color: var(--color-text-primary); /* Белая стрелка */
     padding: 5px;
     display: flex;
     align-items: center;
@@ -46,6 +74,7 @@ body {
     display: block;
 }
 
+/* --- Основной контент (Main Content) --- */
 .gowk-content {
     padding-top: 20px;
     padding-bottom: 80px;
@@ -56,7 +85,7 @@ body {
     margin: 0 auto;
 }
 
-/* --- Информация о состоянии (Над таймером) --- */
+/* --- Текущее упражнение / Состояние --- */
 .current-state-box {
     text-align: center;
     margin-bottom: 20px;
@@ -65,7 +94,7 @@ body {
     font-size: 1.5em;
     font-weight: 700;
     color: var(--color-primary);
-    min-height: 24px; /* Чтобы избежать скачков при смене */
+    min-height: 24px;
 }
 .current-state-box .ex-reps {
     font-size: 1.1em;
@@ -94,7 +123,7 @@ body {
 }
 
 
-/* --- Таймер-круг --- */
+/* --- Таймер-круг (Критически важные стили) --- */
 .timer-container {
     width: 250px;
     height: 250px;
@@ -110,7 +139,7 @@ body {
 .timer-background {
     fill: none;
     stroke: var(--color-card-bg-darker);
-    stroke-width: 8; /* Чуть толще */
+    stroke-width: 8; 
 }
 
 .timer-progress {
@@ -118,6 +147,7 @@ body {
     stroke: var(--color-primary); 
     stroke-width: 8;
     stroke-linecap: round;
+    /* Гарантируем начало сверху и движение по часовой стрелке */
     transform: rotate(-90deg); 
     transform-origin: 50% 50%;
     transition: stroke-dashoffset 0.1s linear; 
@@ -140,26 +170,44 @@ body {
 }
 
 .timer-text.large-text {
-    font-size: 20px; /* Для 'Начать тренировку' */
+    font-size: 20px; 
 }
 
 .timer-text.time {
-    font-size: 42px; /* Для цифрового таймера */
+    font-size: 42px; 
     font-weight: 900;
 }
 
 .timer-text.paused-color {
-    fill: var(--color-text-secondary); /* Темно-серый для паузы */
+    fill: var(--color-text-secondary); /* Серый для паузы */
 }
 
-/* --- Кнопка пропуска --- */
+
+/* --- Кнопки (Базовые стили для .btn) --- */
+.btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    transition: opacity 0.2s, background 0.2s;
+    width: 100%;
+}
+.btn.primary {
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+.btn.ghost {
+    background-color: transparent;
+    border: 1px solid var(--color-text-secondary);
+    color: var(--color-text-primary);
+}
 .skip-btn {
     width: 100%;
     max-width: 250px;
     margin-bottom: 30px;
-    /* Стиль должен быть как у 'ghost' кнопки из style.css */
 }
-
 
 /* --- Список упражнений --- */
 .exercises-list-header {
@@ -190,12 +238,8 @@ body {
     padding: 15px;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    border: 2px solid transparent; /* Обводка для статуса */
-    transition: border 0.3s;
-}
-
-.exercise-card-info {
-    flex-grow: 1;
+    border: 2px solid transparent; 
+    transition: border 0.3s, box-shadow 0.3s;
 }
 
 .exercise-card-title {
@@ -222,6 +266,52 @@ body {
     box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-.hidden {
-    display: none !important;
+/* --- Модальные окна --- */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.bottom-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    background-color: var(--color-card-bg);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2);
+    transform: translateY(0); /* Должен быть управляем JS */
+}
+
+.end-modal {
+    /* Для модалки завершения, которая появляется по центру */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    bottom: unset;
+    border-radius: 15px;
+    width: 350px;
+    max-width: 90%;
+}
+.end-modal h2 {
+    margin-top: 0;
+    text-align: center;
+}
+.end-modal p {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin-bottom: 20px;
+}
+.end-modal .row {
+    margin-top: 10px;
 }
