@@ -78,27 +78,20 @@ function setupUI() {
 
 /* ====== Timer Logic and Control (Обновлено) ====== */
 
-/**
- * Обрабатывает клик по кругу.
- */
 function handleTimerClick() {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
 
     if (timerState === 'initial') {
-        // Начать тренировку
         startTimer(); 
     } else if (timerState === 'rest') {
-        // ⭐ ИСПРАВЛЕНИЕ: Выход из режима отдыха. Загружаем данные следующего упражнения и стартуем его.
+        // Выход из режима отдыха. Загружаем данные следующего упражнения и стартуем его.
         resetTimer(); 
         startTimer(); 
     } else if (timerState === 'running') {
-        // Пауза
         pauseTimer(); 
     } else if (timerState === 'paused') {
-        // Возобновление
         startTimer(); 
     } else if (timerState === 'completed') {
-        // Упражнение без таймера
         moveToNextStep(); 
     }
 }
@@ -107,31 +100,26 @@ function startTimer() {
     clearInterval(timerInterval);
 
     if (timerState === 'initial') {
-        // Сброс и подготовка к запуску
         timerState = 'running';
         restIndicator.classList.add('hidden');
         
-        // Обновляем UI для первого запуска
         timerTextEl.textContent = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
         timerTextEl.classList.add('time');
         timerTextEl.classList.remove('paused-color', 'large-text');
         
         if (remainingSeconds === 0) {
-            // Упражнение без таймера, ждем клика "Далее"
             showCompletion('завершено', false); 
             return;
         }
     } else if (timerState === 'paused') {
-        // Возобновление
         timerState = 'running';
         timerTextEl.classList.remove('paused-color');
         skipExerciseBtn.classList.add('hidden'); 
     }
 
-    // ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ АНИМАЦИИ: Немедленно обновляем прогресс, 
-    // чтобы круг отображался корректно при старте/возобновлении.
+    // Критическое исправление: Обновляем анимацию немедленно при старте/возобновлении.
     if (remainingSeconds > 0) {
-        updateTimerDisplay();
+        updateTimerDisplay(); 
         timerInterval = setInterval(tick, 1000);
     }
 }
@@ -160,13 +148,20 @@ function tick() {
     updateTimerDisplay();
 }
 
+/**
+ * ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Логика анимации по часовой стрелке
+ */
 function updateTimerDisplay() {
     timerTextEl.textContent = formatTime(remainingSeconds);
     
-    // Анимация круга (прогресс)
     const circumference = 2 * Math.PI * 45;
-    // remainingSeconds / totalSeconds - отношение оставшегося времени к общему
-    const offset = circumference * (1 - (remainingSeconds / totalSeconds));
+    
+    // ⭐ Формула для убывания по часовой стрелке:
+    // Мы вычисляем, какую часть круга нужно *скрыть* (strokeDashoffset)
+    // Отношение завершенного времени: (totalSeconds - remainingSeconds) / totalSeconds
+    const completedRatio = (totalSeconds - remainingSeconds) / totalSeconds;
+    const offset = circumference * completedRatio;
+    
     timerProgressEl.style.strokeDashoffset = offset;
 }
 
@@ -204,10 +199,9 @@ function resetTimer() {
     timerTextEl.classList.add('large-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
-    // Сброс круговой полосы на полный круг
-    const circumference = 2 * Math.PI * 45;
-    timerProgressEl.style.strokeDashoffset = totalSeconds > 0 ? circumference : 0;
-    timerProgressEl.style.stroke = 'var(--color-primary)';
+    // Сброс круговой полосы на полный круг (0 завершено)
+    timerProgressEl.style.strokeDashoffset = 0; 
+    timerProgressEl.style.stroke = 'var(--color-text-primary)';
 }
 
 
@@ -219,8 +213,9 @@ function showCompletion(status, move = true) {
     updateExerciseCardStatus(exId, status);
     
     if (totalSeconds > 0) {
-        // Устанавливаем полный прогресс
-        timerProgressEl.style.strokeDashoffset = 0;
+        // Устанавливаем полный прогресс (скрываем всю полосу)
+        const circumference = 2 * Math.PI * 45;
+        timerProgressEl.style.strokeDashoffset = circumference;
         timerProgressEl.style.stroke = (status === 'завершено') ? 'var(--color-success)' : 'var(--color-error)';
     }
 
@@ -270,8 +265,9 @@ function startRestState() {
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
     
-    // Прячем полосу для неограниченного отдыха
-    timerProgressEl.style.strokeDashoffset = 2 * Math.PI * 45; 
+    // Прячем полосу (показываем, что она полностью завершилась)
+    const circumference = 2 * Math.PI * 45;
+    timerProgressEl.style.strokeDashoffset = circumference; 
     timerProgressEl.style.stroke = 'var(--color-warning)';
     
     timerState = 'rest'; 
