@@ -20,7 +20,7 @@ let timerInterval = null;
 /* ====== Elements (gowk.html) ====== */
 const topBar = document.getElementById('topBar');
 const workoutTitleEl = document.getElementById('workoutTitle');
-const currentStateTitleEl = document.getElementById('currentStateTitle');
+// ⭐ УДАЛЕНА: const currentStateTitleEl = document.getElementById('currentStateTitle');
 const currentExNameEl = document.getElementById('currentExName');
 const currentExRepsEl = document.getElementById('currentExReps');
 
@@ -38,7 +38,7 @@ const backToMainBtn = document.getElementById('backToMainBtn');
 
 const restIndicator = document.getElementById('restIndicator');
 const nextExNameHint = document.getElementById('nextExNameHint');
-const nextExRepsHint = document.getElementById('nextExRepsHint'); // ⭐ Новый элемент для повторений
+const nextExRepsHint = document.getElementById('nextExRepsHint'); 
 
 const skipConfirmModal = document.getElementById('skipConfirmModal');
 const skipConfirmOverlay = document.getElementById('skipConfirmOverlay');
@@ -120,8 +120,7 @@ function startTimer() {
         timerTextEl.classList.add('time');
         timerTextEl.classList.remove('paused-color', 'start-text');
         
-        // ⭐ Обновляем заголовок состояния
-        currentStateTitleEl.textContent = 'ТЕКУЩЕЕ УПРАЖНЕНИЕ';
+        // ⭐ Обновляем видимость элементов (больше не нужно обновлять currentStateTitleEl)
         currentExNameEl.classList.remove('hidden');
         currentExRepsEl.classList.remove('hidden');
 
@@ -217,13 +216,12 @@ function resetTimer() {
     timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
-    // ⭐ Обновляем заголовок состояния
-    currentStateTitleEl.textContent = 'ТЕКУЩЕЕ УПРАЖНЕНИЕ';
+    // ⭐ Обновляем видимость элементов
     currentExNameEl.classList.remove('hidden');
     currentExRepsEl.classList.remove('hidden');
     
     timerProgressEl.style.strokeDashoffset = 0; 
-    timerProgressEl.style.stroke = 'var(--color-primary-light)'; 
+    timerProgressEl.style.stroke = 'var(--color-text-primary)'; // Используем белый из новых переменных
 }
 
 
@@ -281,13 +279,12 @@ function startRestState() {
     const nextEx = activeWorkout.exercises[currentExIndex];
     
     // ⭐ РЕЖИМ ОТДЫХА: Скрываем текущее упражнение и показываем информацию о следующем внутри индикатора отдыха.
-    currentStateTitleEl.textContent = ''; // Убираем заголовок "ТЕКУЩЕЕ УПРАЖНЕНИЕ"
     currentExNameEl.classList.add('hidden');
     currentExRepsEl.classList.add('hidden');
     
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
-    nextExRepsHint.textContent = `Повторения: ${nextEx.reps}`; // ⭐ Добавление повторений
+    nextExRepsHint.textContent = `Повторения: ${nextEx.reps}`; 
     
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDashoffset = circumference; 

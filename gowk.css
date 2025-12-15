@@ -8,14 +8,11 @@
     --glass-2: rgba(255, 255, 255, 0.12);
     --accent: #8a5cff; 
     --primary: #5d1fff; 
-    --white: #fff;
-    
+    --white: #fff; 
     --color-bg: linear-gradient(135deg, var(--bg1), var(--bg2)); 
     --color-card-bg: var(--bg1); 
-
     --color-primary: var(--primary); 
     --color-primary-light: var(--accent); 
-    
     --color-text-primary: var(--white);
     --color-text-secondary: #cccccc; 
     --color-success: #28a745; 
@@ -48,7 +45,6 @@ body {
     display: flex;
     align-items: flex-end; 
     justify-content: space-between;
-    
     backdrop-filter: blur(15px); 
     background: var(--glass); 
     border-bottom: 1px solid var(--glass-2);
@@ -96,13 +92,13 @@ body {
 
 /* --- Основной контент --- */
 .gowk-content {
-    padding-top: 20px;
-    padding-bottom: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 500px;
-    margin: 0 auto;
+padding-top: 20px;
+padding-bottom: 80px;
+display: flex;
+flex-direction: column;
+align-items: center;
+max-width: 500px;
+margin: 0 auto;
 }
 
 /* --- Текущее упражнение / Состояние --- */
@@ -118,7 +114,7 @@ body {
     min-height: 24px;
 }
 .current-state-box .ex-current-name {
-    /* Название упражнения, когда оно активно */
+/* Название упражнения, когда оно активно */
     font-size: 1.5em;
     font-weight: 700;
     color: var(--color-primary-light);
@@ -167,7 +163,7 @@ body {
     position: relative;
     margin-bottom: 30px;
     border-radius: 50%;
-    background: transparent; 
+    background: transparent; /* Убран фон, так как он не нужен при использовании SVG */
 }
 
 .timer-circle {
