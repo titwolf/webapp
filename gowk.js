@@ -103,6 +103,7 @@ function startTimer() {
         timerState = 'running';
         restIndicator.classList.add('hidden');
         
+        // Устанавливаем отображение времени (цифры)
         timerTextEl.textContent = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
         timerTextEl.classList.add('time');
         timerTextEl.classList.remove('paused-color', 'large-text');
@@ -195,13 +196,14 @@ function resetTimer() {
     remainingSeconds = totalSeconds;
 
     timerState = 'initial';
+    // Для таймеров > 0 - "Начать тренировку", для "Далее" - "Далее"
     timerTextEl.textContent = totalSeconds > 0 ? 'Начать тренировку' : 'Далее';
     timerTextEl.classList.add('large-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
     // Сброс круговой полосы на полный круг (0 завершено)
     timerProgressEl.style.strokeDashoffset = 0; 
-    timerProgressEl.style.stroke = 'var(--color-text-primary)';
+    timerProgressEl.style.stroke = 'var(--color-primary-light)'; // Цвет полосы
 }
 
 
@@ -259,8 +261,9 @@ function startRestState() {
     
     const nextEx = activeWorkout.exercises[currentExIndex];
     
-    currentExNameEl.textContent = "ПЕРЕРЫВ";
-    currentExRepsEl.textContent = `Готовьтесь к следующему подходу`;
+    // ⭐ УПРОЩЕНИЕ: Оставляем только текст "ОТДЫХ"
+    currentExNameEl.textContent = "ОТДЫХ"; 
+    currentExRepsEl.textContent = ``; // Очищаем или ставим пустую строку
     
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
@@ -289,9 +292,15 @@ function renderExerciseList() {
         
         let timeStr = '';
         if (ex.min > 0 || ex.sec > 0) {
+            // ⭐ ИСПРАВЛЕНИЕ: Добавлены пробелы вокруг разделителя "|"
             timeStr = ` | ${ex.min > 0 ? ex.min + ' мин' : ''} ${ex.sec > 0 ? ex.sec + ' сек' : ''}`.trim();
+            if (timeStr.startsWith('|')) timeStr = ` ${timeStr}`;
+            if (timeStr.endsWith('|')) timeStr = `${timeStr} `;
         }
-
+        // Убираем лишние пробелы и "|" если нет времени
+        timeStr = timeStr.replace(/ \|/g, ' |').trim();
+        if (timeStr === '|') timeStr = '';
+        
         div.innerHTML = `
             <div class="exercise-card-info">
                 <div class="exercise-card-title">${index + 1}. ${ex.name}</div>
