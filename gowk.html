@@ -22,12 +22,16 @@
     <main class="content-wrap gowk-content">
         
         <div class="current-state-box">
-            <p id="currentExName" class="ex-name">Упражнение</p>
+            <p id="currentStateTitle" class="ex-name">ТЕКУЩЕЕ УПРАЖНЕНИЕ</p>
+            <p id="currentExName" class="ex-name ex-current-name">Приседания со штангой</p>
             <p id="currentExReps" class="ex-reps">Повторения: -</p>
             
             <div id="restIndicator" class="hidden">
                 <p class="rest-text">ОТДЫХ</p>
-                <p class="next-ex-hint">Далее: <span id="nextExNameHint"></span></p>
+                <div class="next-ex-hint-group">
+                    <p class="next-ex-hint">Далее: <span id="nextExNameHint"></span></p>
+                    <p class="next-ex-reps-hint" id="nextExRepsHint"></p>
+                </div>
             </div>
         </div>
 
@@ -37,7 +41,10 @@
                 <circle id="timerProgress" class="timer-progress" cx="50" cy="50" r="45"></circle>
                 
                 <g id="timerControl">
-                    <text id="timerText" x="50" y="53" text-anchor="middle" class="timer-text start-text">Начать тренировку</text>
+                    <text id="timerText" x="50" y="50" text-anchor="middle" class="timer-text start-text">
+                        <tspan x="50" dy="-0.6em">Начать</tspan>
+                        <tspan x="50" dy="1.2em">тренировку</tspan>
+                    </text>
                     <rect x="0" y="0" width="100" height="100" class="timer-hitbox"></rect> 
                 </g>
             </svg>

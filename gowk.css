@@ -2,7 +2,6 @@
 
 /* --- Базовые переменные (Синхронизация с style.css) --- */
 :root {
-    /* Переменные из style.css (Предполагаем, что они такие) */
     --bg1: #1a002e; 
     --bg2: #3f0071; 
     --glass: rgba(255, 255, 255, 0.08); 
@@ -11,12 +10,11 @@
     --primary: #5d1fff; 
     --white: #fff;
     
-    /* Адаптированные переменные */
     --color-bg: linear-gradient(135deg, var(--bg1), var(--bg2)); 
     --color-card-bg: var(--bg1); 
 
     --color-primary: var(--primary); 
-    --color-primary-light: var(--accent); /* Акцент для таймера/подсветки */
+    --color-primary-light: var(--accent); 
     
     --color-text-primary: var(--white);
     --color-text-secondary: #cccccc; 
@@ -51,22 +49,21 @@ body {
     align-items: flex-end; 
     justify-content: space-between;
     
-    /* ⭐ АНИМАЦИЯ И СТИЛИЗАЦИЯ КАК НА ГЛАВНОЙ */
     backdrop-filter: blur(15px); 
     background: var(--glass); 
     border-bottom: 1px solid var(--glass-2);
     border-radius: 0 0 20px 20px; 
-    transition: transform 0.3s ease-out; /* Плавное выезжание/скрытие */
+    transition: transform 0.3s ease-out; 
     z-index: 1000;
 }
 .left-group {
     display: flex;
     align-items: flex-end;
 }
-/* ⭐ КНОПКА НАЗАД: Полупрозрачная как кнопка '+' на главной */
+/* КНОПКА НАЗАД: Полупрозрачная как кнопка '+' на главной */
 .back-btn {
-    background: var(--glass); /* Полупрозрачный фон */
-    border: 1px solid var(--glass-2); /* Тонкая рамка */
+    background: var(--glass); 
+    border: 1px solid var(--glass-2); 
     cursor: pointer;
     color: var(--white);
     font-size: 24px; 
@@ -120,6 +117,13 @@ body {
     color: var(--color-primary-light);
     min-height: 24px;
 }
+.current-state-box .ex-current-name {
+    /* Название упражнения, когда оно активно */
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--color-primary-light);
+    margin-bottom: 5px;
+}
 .current-state-box .ex-reps {
     font-size: 1.1em;
     color: var(--color-text-secondary);
@@ -132,29 +136,37 @@ body {
     margin-top: 10px;
 }
 .rest-text {
-    font-size: 1.5em;
+    font-size: 1.8em; /* Чуть крупнее для акцента */
     font-weight: 800;
     color: var(--color-warning); 
     margin: 0 0 5px 0;
 }
+.next-ex-hint-group {
+    margin-top: 10px;
+}
 .next-ex-hint {
-    font-size: 1em;
+    font-size: 1.1em;
     color: var(--color-text-secondary);
+    margin: 0;
 }
 .next-ex-hint span {
     font-weight: 600;
     color: var(--color-text-primary);
 }
+.next-ex-reps-hint {
+    font-size: 1em;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
 
 
-/* --- Таймер-круг (ВОЗВРАЩЕН ПРЕДЫДУЩИЙ ДИЗАЙН, УМЕНЬШЕН ТЕКСТ) --- */
+/* --- Таймер-круг (Исправлен текст!) --- */
 .timer-container {
     width: 250px;
     height: 250px;
     position: relative;
     margin-bottom: 30px;
     border-radius: 50%;
-    /* Убрал градиентный фон */
     background: transparent; 
 }
 
@@ -165,13 +177,13 @@ body {
 
 .timer-background {
     fill: transparent; 
-    stroke: var(--color-card-bg); /* Темный фон круга */
+    stroke: var(--color-card-bg); 
     stroke-width: 8; 
 }
 
 .timer-progress {
     fill: none;
-    stroke: var(--color-primary-light); /* Светло-фиолетовый акцент для анимации */
+    stroke: var(--color-primary-light); 
     stroke-width: 8;
     stroke-linecap: round;
     transform: rotate(-90deg); 
@@ -182,7 +194,7 @@ body {
 #timerControl { cursor: pointer; }
 .timer-hitbox { fill: transparent; cursor: pointer; }
 
-/* ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: МАКСИМАЛЬНО УМЕНЬШЕННЫЙ РАЗМЕР ТЕКСТА ВНУТРИ КРУГА */
+/* ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ТЕКСТА ТАЙМЕРА */
 .timer-text { 
     fill: var(--color-text-primary); 
     font-weight: 700; 
@@ -190,17 +202,22 @@ body {
     transition: fill 0.3s; 
 }
 .timer-text.start-text { 
-    font-size: 14px; /* Для "Начать тренировку" или "СТАРТ" */
+    /* Текст "Начать тренировку" - размер уменьшен, выравнивание по центру */
+    font-size: 14px; 
     font-weight: 600;
 }
 .timer-text.time { 
-    font-size: 32px; /* Для цифрового таймера (01:56) */
+    /* Цифровой таймер - размер уменьшен */
+    font-size: 30px; 
     font-weight: 900; 
+    /* Центрируем время */
+    dominant-baseline: middle; 
 }
+
 .timer-text.paused-color { fill: var(--color-text-secondary); }
 
 
-/* --- Кнопки и Списки --- */
+/* --- Кнопки и Списки (Без изменений) --- */
 .btn {
     padding: 12px 20px;
     border-radius: 10px;
@@ -225,8 +242,6 @@ body {
     max-width: 250px;
     margin-bottom: 30px;
 }
-
-/* --- Список упражнений (Как на главной) --- */
 .exercises-list-header {
     font-size: 1.2em;
     font-weight: 600;
@@ -237,7 +252,6 @@ body {
     box-sizing: border-box;
     margin-bottom: 10px;
 }
-
 .exercises-list {
     width: 100%;
     max-width: 500px;
@@ -247,7 +261,6 @@ body {
     flex-direction: column; 
     gap: 10px;
 }
-
 .exercise-card {
     display: flex;
     justify-content: space-between;
@@ -259,31 +272,26 @@ body {
     border: 2px solid transparent; 
     transition: border 0.3s, box-shadow 0.3s;
 }
-
 .exercise-card-title {
     font-weight: 600;
     font-size: 1.1em;
 }
-
 .exercise-card-meta {
     font-size: 0.9em;
     color: var(--color-text-secondary);
     margin-top: 3px;
 }
-
 .status-completed {
     border-color: var(--color-success); 
 }
-
 .status-skipped {
     border-color: var(--color-error); 
 }
-
 .current-highlight {
     box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-/* --- Модальные окна --- */
+/* --- Модальные окна (Без изменений) --- */
 .overlay {
     position: fixed;
     top: 0;

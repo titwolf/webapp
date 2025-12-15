@@ -20,6 +20,7 @@ let timerInterval = null;
 /* ====== Elements (gowk.html) ====== */
 const topBar = document.getElementById('topBar');
 const workoutTitleEl = document.getElementById('workoutTitle');
+const currentStateTitleEl = document.getElementById('currentStateTitle');
 const currentExNameEl = document.getElementById('currentExName');
 const currentExRepsEl = document.getElementById('currentExReps');
 
@@ -37,6 +38,7 @@ const backToMainBtn = document.getElementById('backToMainBtn');
 
 const restIndicator = document.getElementById('restIndicator');
 const nextExNameHint = document.getElementById('nextExNameHint');
+const nextExRepsHint = document.getElementById('nextExRepsHint'); // ⭐ Новый элемент для повторений
 
 const skipConfirmModal = document.getElementById('skipConfirmModal');
 const skipConfirmOverlay = document.getElementById('skipConfirmOverlay');
@@ -66,7 +68,6 @@ function setupUI() {
     timerControlEl.addEventListener('click', handleTimerClick);
     skipExerciseBtn.addEventListener('click', showSkipConfirm);
     
-    // ⭐ ЛОГИКА СКРЫТИЯ/ПОЯВЛЕНИЯ TOP BAR С ПЛАВНОЙ АНИМАЦИЕЙ (как в script.js)
     window.addEventListener('scroll', handleScroll); 
     
     backToMainBtn.addEventListener('click', handleExit);
@@ -83,7 +84,6 @@ function setupUI() {
 let lastScroll = 0;
 function handleScroll() {
     const cur = window.pageYOffset || document.documentElement.scrollTop;
-    // Используем translateY(-100%) для плавного скрытия вверх
     topBar.style.transform = cur > lastScroll ? 'translateY(-100%)' : 'translateY(0)';
     lastScroll = cur <= 0 ? 0 : cur;
 }
@@ -115,11 +115,16 @@ function startTimer() {
         timerState = 'running';
         restIndicator.classList.add('hidden');
         
-        // Устанавливаем отображение времени (цифры)
-        timerTextEl.textContent = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
+        // ⭐ Убираем текст "Начать тренировку"
+        timerTextEl.innerHTML = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
         timerTextEl.classList.add('time');
         timerTextEl.classList.remove('paused-color', 'start-text');
         
+        // ⭐ Обновляем заголовок состояния
+        currentStateTitleEl.textContent = 'ТЕКУЩЕЕ УПРАЖНЕНИЕ';
+        currentExNameEl.classList.remove('hidden');
+        currentExRepsEl.classList.remove('hidden');
+
         if (remainingSeconds === 0) {
             showCompletion('завершено', false); 
             return;
@@ -201,12 +206,22 @@ function resetTimer() {
     remainingSeconds = totalSeconds;
 
     timerState = 'initial';
-    // Для таймеров > 0 - "Начать тренировку", для "Далее" - "Далее"
-    timerTextEl.textContent = totalSeconds > 0 ? 'Начать тренировку' : 'Далее';
+    
+    // ⭐ Форматирование текста для "Начать тренировку" с переносом строки
+    if (totalSeconds > 0) {
+        timerTextEl.innerHTML = '<tspan x="50" dy="-0.6em">Начать</tspan><tspan x="50" dy="1.2em">тренировку</tspan>';
+    } else {
+        timerTextEl.textContent = 'Далее';
+    }
+    
     timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
-    // Сброс круговой полосы на полный круг (0 завершено)
+    // ⭐ Обновляем заголовок состояния
+    currentStateTitleEl.textContent = 'ТЕКУЩЕЕ УПРАЖНЕНИЕ';
+    currentExNameEl.classList.remove('hidden');
+    currentExRepsEl.classList.remove('hidden');
+    
     timerProgressEl.style.strokeDashoffset = 0; 
     timerProgressEl.style.stroke = 'var(--color-primary-light)'; 
 }
@@ -265,13 +280,14 @@ function startRestState() {
     
     const nextEx = activeWorkout.exercises[currentExIndex];
     
-    // ⭐ ИСПРАВЛЕНИЕ: Оставляем только "ОТДЫХ" в отдельном блоке. 
-    // В ex-name и ex-reps показываем информацию о СЛЕДУЮЩЕМ упражнении.
-    currentExNameEl.textContent = nextEx.name; 
-    currentExRepsEl.textContent = `Повторения: ${nextEx.reps}`; 
+    // ⭐ РЕЖИМ ОТДЫХА: Скрываем текущее упражнение и показываем информацию о следующем внутри индикатора отдыха.
+    currentStateTitleEl.textContent = ''; // Убираем заголовок "ТЕКУЩЕЕ УПРАЖНЕНИЕ"
+    currentExNameEl.classList.add('hidden');
+    currentExRepsEl.classList.add('hidden');
     
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
+    nextExRepsHint.textContent = `Повторения: ${nextEx.reps}`; // ⭐ Добавление повторений
     
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDashoffset = circumference; 
@@ -284,7 +300,7 @@ function startRestState() {
 }
 
 
-/* ====== Exercise List UI ====== */
+/* ====== Exercise List UI (Без изменений) ====== */
 
 function renderExerciseList() {
     exercisesListContainer.innerHTML = '';
@@ -299,7 +315,6 @@ function renderExerciseList() {
         if (ex.min > 0) metaParts.push(`${ex.min} мин`);
         if (ex.sec > 0) metaParts.push(`${ex.sec} сек`);
         
-        // ⭐ ИСПРАВЛЕНИЕ: Разделитель с пробелами
         const metaStr = metaParts.join(' | ');
         
         div.innerHTML = `
@@ -340,7 +355,7 @@ function updateCurrentExerciseHighlight(exId) {
 }
 
 
-/* ====== End of Workout Logic ====== */
+/* ====== End of Workout Logic (Без изменений) ====== */
 
 function showEndWorkoutModal() {
     endWorkoutOverlay.classList.remove('hidden');
