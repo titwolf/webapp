@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1.0">
     <title>FitPlan — Тренировка</title>
     <link rel="stylesheet" href="gowk.css"> 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -85,6 +85,20 @@
             </div>
             <div class="row">
                 <button class="btn ghost" id="cancelSkipBtn">Отмена</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="overlay hidden" id="exitConfirmOverlay"></div>
+    <section class="bottom-modal end-modal hidden" id="exitConfirmModal">
+        <div class="modal-inner">
+            <h2>Выйти из тренировки?</h2>
+            <p>Ваш текущий прогресс будет потерян.</p>
+            <div class="row">
+                <button class="btn primary" id="confirmExitBtn">Да, выйти</button>
+            </div>
+            <div class="row">
+                <button class="btn ghost" id="cancelExitBtn">Отмена</button>
             </div>
         </div>
     </section>
