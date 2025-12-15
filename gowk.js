@@ -1,7 +1,7 @@
 /* ====== gowk.js (Переработанная логика плеера) ====== */
 
 /* ====== Общие элементы и TWA ====== */
-const API_BASE = "http://localhost:5000"; // Оставлен для возможности будущего расширения
+const API_BASE = "http://localhost:5000"; 
 let tgUser = { id: null, first_name: "Пользователь", username: "" };
 window.Telegram?.WebApp?.ready();
 if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
@@ -51,13 +51,12 @@ function initWorkoutPlayer() {
         activeWorkout = JSON.parse(storedWorkout);
         if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
             setupUI();
-            renderExerciseList(); // Рендерим все карточки
+            renderExerciseList(); 
             resetTimer(); 
             return;
         }
     }
     
-    // Если данные не найдены, возвращаемся на главную
     window.location.href = 'index.html'; 
 }
 
@@ -69,17 +68,15 @@ function setupUI() {
     repeatWorkoutBtn.addEventListener('click', repeatWorkout);
     exitToMainBtn.addEventListener('click', handleExit);
     
-    // Подтверждение пропуска
     confirmSkipBtn.addEventListener('click', () => { skipExercise(true); });
     cancelSkipBtn.addEventListener('click', () => { skipConfirmOverlay.classList.add('hidden'); skipConfirmModal.classList.add('hidden'); });
 
-    // Вычисляем длину окружности для SVG (R=45)
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDasharray = circumference;
 }
 
 
-/* ====== Timer Logic and Control ====== */
+/* ====== Timer Logic and Control (Обновлено) ====== */
 
 /**
  * Обрабатывает клик по кругу.
@@ -87,8 +84,12 @@ function setupUI() {
 function handleTimerClick() {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
 
-    if (timerState === 'initial' || timerState === 'rest') {
-        // Начать тренировку или Начать следующее упражнение
+    if (timerState === 'initial') {
+        // Начать тренировку
+        startTimer(); 
+    } else if (timerState === 'rest') {
+        // ⭐ ИСПРАВЛЕНИЕ: Выход из режима отдыха. Загружаем данные следующего упражнения и стартуем его.
+        resetTimer(); 
         startTimer(); 
     } else if (timerState === 'running') {
         // Пауза
@@ -105,7 +106,7 @@ function handleTimerClick() {
 function startTimer() {
     clearInterval(timerInterval);
 
-    if (timerState === 'initial' || timerState === 'rest') {
+    if (timerState === 'initial') {
         // Сброс и подготовка к запуску
         timerState = 'running';
         restIndicator.classList.add('hidden');
@@ -117,18 +118,20 @@ function startTimer() {
         
         if (remainingSeconds === 0) {
             // Упражнение без таймера, ждем клика "Далее"
-            showCompletion('завершено', false); // Обновляем только карточку, не запускаем таймер
+            showCompletion('завершено', false); 
             return;
         }
     } else if (timerState === 'paused') {
         // Возобновление
         timerState = 'running';
         timerTextEl.classList.remove('paused-color');
-        skipExerciseBtn.classList.add('hidden'); // Кнопка пропуска исчезает
+        skipExerciseBtn.classList.add('hidden'); 
     }
 
-    // Запускаем тик, только если есть время
+    // ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ АНИМАЦИИ: Немедленно обновляем прогресс, 
+    // чтобы круг отображался корректно при старте/возобновлении.
     if (remainingSeconds > 0) {
+        updateTimerDisplay();
         timerInterval = setInterval(tick, 1000);
     }
 }
@@ -139,10 +142,9 @@ function pauseTimer() {
     clearInterval(timerInterval);
     timerState = 'paused';
 
-    // Визуальные изменения для паузы
     timerTextEl.textContent = formatTime(remainingSeconds);
-    timerTextEl.classList.add('paused-color'); // Цифры становятся серыми
-    skipExerciseBtn.classList.remove('hidden'); // Появляется кнопка пропуска
+    timerTextEl.classList.add('paused-color'); 
+    skipExerciseBtn.classList.remove('hidden'); 
 }
 
 function tick() {
@@ -151,7 +153,7 @@ function tick() {
     if (remainingSeconds <= 0) {
         clearInterval(timerInterval);
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        showCompletion('завершено'); // Упражнение завершено по таймеру
+        showCompletion('завершено'); 
         return;
     }
 
@@ -163,7 +165,8 @@ function updateTimerDisplay() {
     
     // Анимация круга (прогресс)
     const circumference = 2 * Math.PI * 45;
-    const offset = circumference * (remainingSeconds / totalSeconds);
+    // remainingSeconds / totalSeconds - отношение оставшегося времени к общему
+    const offset = circumference * (1 - (remainingSeconds / totalSeconds));
     timerProgressEl.style.strokeDashoffset = offset;
 }
 
@@ -181,7 +184,6 @@ function resetTimer() {
     skipExerciseBtn.classList.add('hidden');
     restIndicator.classList.add('hidden');
 
-    // Проверяем завершение тренировки
     if (currentExIndex >= activeWorkout.exercises.length) {
         showEndWorkoutModal();
         return;
@@ -189,7 +191,6 @@ function resetTimer() {
     
     const ex = activeWorkout.exercises[currentExIndex];
     
-    // Обновляем текущее упражнение в списке
     updateCurrentExerciseHighlight(ex.id);
     
     currentExNameEl.textContent = ex.name;
@@ -203,7 +204,7 @@ function resetTimer() {
     timerTextEl.classList.add('large-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
-    // Сброс круговой полосы
+    // Сброс круговой полосы на полный круг
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDashoffset = totalSeconds > 0 ? circumference : 0;
     timerProgressEl.style.stroke = 'var(--color-primary)';
@@ -212,23 +213,18 @@ function resetTimer() {
 
 /* ====== Exercise Flow Control (Смена состояния) ====== */
 
-/**
- * Показывает завершение, обновляет UI и переходит в состояние 'completed'/'rest'.
- */
 function showCompletion(status, move = true) {
     
-    // 1. Обновляем карточку упражнения
     const exId = activeWorkout.exercises[currentExIndex].id;
     updateExerciseCardStatus(exId, status);
     
-    // 2. Визуальное завершение (если есть таймер)
     if (totalSeconds > 0) {
         // Устанавливаем полный прогресс
         timerProgressEl.style.strokeDashoffset = 0;
         timerProgressEl.style.stroke = (status === 'завершено') ? 'var(--color-success)' : 'var(--color-error)';
     }
 
-    timerState = 'completed'; // Переход в состояние, ожидающее следующего шага
+    timerState = 'completed'; 
     timerTextEl.textContent = 'Далее';
     timerTextEl.classList.remove('time', 'paused-color');
     timerTextEl.classList.add('large-text');
@@ -237,17 +233,11 @@ function showCompletion(status, move = true) {
     if (move) moveToNextStep();
 }
 
-/**
- * Показывает модальное окно подтверждения пропуска.
- */
 function showSkipConfirm() {
     skipConfirmOverlay.classList.remove('hidden');
     skipConfirmModal.classList.remove('hidden');
 }
 
-/**
- * Пропускает упражнение (после подтверждения).
- */
 function skipExercise(confirmed) {
     if (!confirmed) return;
 
@@ -259,19 +249,14 @@ function skipExercise(confirmed) {
     showCompletion('пропущено');
 }
 
-/**
- * Движение к следующему шагу (отдых или завершение)
- */
 function moveToNextStep() {
     currentExIndex++;
     
-    // Если это было последнее упражнение
     if (currentExIndex >= activeWorkout.exercises.length) {
         showEndWorkoutModal();
         return;
     }
     
-    // Начинаем отдых
     startRestState();
 }
 
@@ -285,11 +270,11 @@ function startRestState() {
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
     
-    // Скрываем полосу
-    timerProgressEl.style.strokeDashoffset = 2 * Math.PI * 45;
+    // Прячем полосу для неограниченного отдыха
+    timerProgressEl.style.strokeDashoffset = 2 * Math.PI * 45; 
     timerProgressEl.style.stroke = 'var(--color-warning)';
     
-    timerState = 'rest'; // Неограниченный отдых
+    timerState = 'rest'; 
     timerTextEl.textContent = 'СТАРТ';
     timerTextEl.classList.add('large-text');
     timerTextEl.classList.remove('time', 'paused-color');
@@ -326,10 +311,8 @@ function renderExerciseList() {
 function updateExerciseCardStatus(exId, status) {
     const card = document.querySelector(`.exercise-card[data-ex-id='${exId}']`);
     if (card) {
-        // Убираем предыдущие классы статуса
         card.classList.remove('status-completed', 'status-skipped', 'current-highlight');
         
-        // Добавляем новый класс статуса
         if (status === 'завершено') {
             card.classList.add('status-completed');
         } else if (status === 'пропущено') {
@@ -339,16 +322,13 @@ function updateExerciseCardStatus(exId, status) {
 }
 
 function updateCurrentExerciseHighlight(exId) {
-    // Снимаем выделение со всех
     document.querySelectorAll('.exercise-card').forEach(card => {
         card.classList.remove('current-highlight');
     });
     
-    // Добавляем выделение текущему
     const currentCard = document.querySelector(`.exercise-card[data-ex-id='${exId}']`);
     if (currentCard) {
         currentCard.classList.add('current-highlight');
-        // Прокрутка к текущему элементу (опционально)
         currentCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
@@ -367,7 +347,6 @@ function repeatWorkout() {
     endWorkoutModal.classList.add('hidden');
     currentExIndex = 0;
     
-    // Сброс статусов всех карточек
     document.querySelectorAll('.exercise-card').forEach(card => {
         card.classList.remove('status-completed', 'status-skipped', 'current-highlight');
     });
