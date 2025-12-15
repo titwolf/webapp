@@ -9,6 +9,7 @@ if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
 }
 
 /* ====== Workout State & Constants ====== */
+const PROGRESS_STORAGE_KEY = 'activeWorkoutProgress'; // Ключ для сохранения прогресса
 let activeWorkout = null;
 let currentExIndex = 0;
 // 'initial', 'running', 'paused', 'completed', 'rest'
@@ -20,7 +21,6 @@ let timerInterval = null;
 /* ====== Elements (gowk.html) ====== */
 const topBar = document.getElementById('topBar');
 const workoutTitleEl = document.getElementById('workoutTitle');
-// ⭐ УДАЛЕНА: const currentStateTitleEl = document.getElementById('currentStateTitle');
 const currentExNameEl = document.getElementById('currentExName');
 const currentExRepsEl = document.getElementById('currentExReps');
 
@@ -36,7 +36,7 @@ const repeatWorkoutBtn = document.getElementById('repeatWorkoutBtn');
 const exitToMainBtn = document.getElementById('exitToMainBtn');
 const backToMainBtn = document.getElementById('backToMainBtn');
 
-// Новые элементы для модального окна выхода
+// Элементы для модального окна выхода
 const exitConfirmOverlay = document.getElementById('exitConfirmOverlay');
 const exitConfirmModal = document.getElementById('exitConfirmModal');
 const confirmExitBtn = document.getElementById('confirmExitBtn');
@@ -52,22 +52,127 @@ const confirmSkipBtn = document.getElementById('confirmSkipBtn');
 const cancelSkipBtn = document.getElementById('cancelSkipBtn');
 
 
+/* ====== Local Storage Handlers ====== */
+
+/**
+ * Сохраняет текущее состояние тренировки в LocalStorage
+ */
+function saveProgress() {
+    // Не сохраняем прогресс, если тренировка не начиналась или завершена
+    if (!activeWorkout || timerState === 'initial' || timerState === 'completed') return;
+
+    const progressData = {
+        exId: activeWorkout.id, 
+        currentExIndex: currentExIndex,
+        remainingSeconds: remainingSeconds,
+        timerState: timerState,
+        // Сохраняем статус каждого упражнения для корректного отображения списка
+        exercises: activeWorkout.exercises.map(ex => ({ 
+            id: ex.id, 
+            status: ex.status || null
+        })) 
+    };
+    
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressData));
+}
+
+/**
+ * Удаляет сохраненный прогресс
+ */
+function clearProgress() {
+    localStorage.removeItem(PROGRESS_STORAGE_KEY);
+}
+
+
 /* ====== Initialization and Data Loading ====== */
 
 function initWorkoutPlayer() {
-    const storedWorkout = localStorage.getItem('activeWorkout');
-    if (storedWorkout) {
-        activeWorkout = JSON.parse(storedWorkout);
-        if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
-            setupUI();
-            renderExerciseList(); 
-            resetTimer(); 
-            return;
-        }
-    }
-    
-    window.location.href = 'index.html'; 
+    // 1. Пытаемся загрузить сохраненный прогресс
+    const storedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
+    // 2. Загружаем данные самой тренировки (полагаемся на предыдущий шаг)
+    const storedWorkout = localStorage.getItem('activeWorkout');
+
+    if (storedWorkout) {
+        activeWorkout = JSON.parse(storedWorkout);
+        // Добавляем ID, если он не был установлен (для проверки совпадения прогресса)
+        if (!activeWorkout.id) activeWorkout.id = activeWorkout.exercises.map(ex => ex.id).join('');
+
+        if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
+            setupUI();
+            
+            if (storedProgress) {
+                const progress = JSON.parse(storedProgress);
+                // Проверяем, что прогресс принадлежит этой тренировке
+                if (progress.exId === activeWorkout.id) { 
+                    restoreProgress(progress);
+                } else {
+                    // Если тренировки не совпадают, начинаем сначала
+                    renderExerciseList(); 
+                    resetTimer(); 
+                }
+            } else {
+                // Если прогресса нет, начинаем сначала
+                renderExerciseList(); 
+                resetTimer(); 
+            }
+            
+            return;
+        }
+    }
+    
+    // Если ничего не найдено или нет упражнений
+    window.location.href = 'index.html'; 
 }
+
+function restoreProgress(progress) {
+    currentExIndex = progress.currentExIndex;
+    remainingSeconds = progress.remainingSeconds;
+    timerState = progress.timerState;
+    
+    // Восстановление статусов упражнений в активной тренировке
+    progress.exercises.forEach(pEx => {
+        const ex = activeWorkout.exercises.find(aEx => aEx.id === pEx.id);
+        if (ex) {
+            ex.status = pEx.status;
+        }
+    });
+
+    renderExerciseList(); 
+
+    // Загружаем данные текущего упражнения в таймер
+    const ex = activeWorkout.exercises[currentExIndex];
+    totalSeconds = (ex.min * 60) + ex.sec;
+    
+    // UI для текущего упражнения
+    updateCurrentExerciseHighlight(ex.id);
+    currentExNameEl.textContent = ex.name;
+    currentExRepsEl.textContent = `Повторения: ${ex.reps}`;
+
+    // Обновляем состояние таймера в зависимости от сохраненного
+    if (timerState === 'rest') {
+        startRestState(true); // Запускаем режим отдыха без сдвига индекса
+        // Переход в 'rest' сам установит remainingSeconds и обновит UI
+    } else {
+        // Устанавливаем UI как для паузы
+        if (timerState === 'running') {
+            // Если было 'running', то переводим в 'paused', а потом сразу запускаем
+            pauseTimer(); 
+            startTimer();
+        } else if (timerState === 'paused') {
+             // Если было 'paused', просто ставим на паузу
+            pauseTimer();
+        }
+        
+        // Обновляем текст на таймере после всех манипуляций
+        updateTimerDisplay();
+    }
+    
+    // Если тренировка была на паузе, показываем кнопку "Пропустить"
+    if (timerState === 'paused') {
+        skipExerciseBtn.classList.remove('hidden');
+    }
+}
+
 
 function setupUI() {
     workoutTitleEl.textContent = activeWorkout.title;
@@ -76,12 +181,10 @@ function setupUI() {
     
     window.addEventListener('scroll', handleScroll); 
     
-    // ⭐ ИЗМЕНЕНИЕ: Заменяем простую handleExit на handleBackButtonClick с логикой подтверждения
     backToMainBtn.addEventListener('click', handleBackButtonClick);
     repeatWorkoutBtn.addEventListener('click', repeatWorkout);
     exitToMainBtn.addEventListener('click', handleExit);
     
-    // ⭐ НОВЫЕ СЛУШАТЕЛИ для модального окна выхода
     confirmExitBtn.addEventListener('click', handleExitWorkout);
     cancelExitBtn.addEventListener('click', hideExitConfirmModal);
 
@@ -108,7 +211,7 @@ function handleTimerClick() {
     if (timerState === 'initial') {
         startTimer(); 
     } else if (timerState === 'rest') {
-        resetTimer(); 
+        resetTimer(); // Здесь resetTimer по сути начинает следующее упражнение
         startTimer(); 
     } else if (timerState === 'running') {
         pauseTimer(); 
@@ -126,12 +229,10 @@ function startTimer() {
         timerState = 'running';
         restIndicator.classList.add('hidden');
         
-        // ⭐ Убираем текст "Начать тренировку"
         timerTextEl.innerHTML = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
         timerTextEl.classList.add('time');
         timerTextEl.classList.remove('paused-color', 'start-text');
         
-        // ⭐ Обновляем видимость элементов (больше не нужно обновлять currentStateTitleEl)
         currentExNameEl.classList.remove('hidden');
         currentExRepsEl.classList.remove('hidden');
 
@@ -145,6 +246,9 @@ function startTimer() {
         skipExerciseBtn.classList.add('hidden'); 
     }
 
+    // ⭐ Сохраняем состояние при старте
+    saveProgress();
+
     if (remainingSeconds > 0) {
         updateTimerDisplay(); 
         timerInterval = setInterval(tick, 1000);
@@ -152,7 +256,7 @@ function startTimer() {
 }
 
 function pauseTimer() {
-    if (timerState !== 'running') return;
+    if (timerState !== 'running' && timerState !== 'rest') return;
     
     clearInterval(timerInterval);
     timerState = 'paused';
@@ -160,10 +264,16 @@ function pauseTimer() {
     timerTextEl.textContent = formatTime(remainingSeconds);
     timerTextEl.classList.add('paused-color'); 
     skipExerciseBtn.classList.remove('hidden'); 
+
+    // ⭐ Сохраняем состояние при паузе
+    saveProgress();
 }
 
 function tick() {
     remainingSeconds--;
+
+    // ⭐ Сохраняем прогресс каждую секунду
+    saveProgress(); 
 
     if (remainingSeconds <= 0) {
         clearInterval(timerInterval);
@@ -216,6 +326,8 @@ function resetTimer() {
     remainingSeconds = totalSeconds;
 
     timerState = 'initial';
+    // ⭐ Очищаем прогресс, если мы начинаем с первого упражнения
+    if (currentExIndex === 0) clearProgress();
     
     // ⭐ Форматирование текста для "Начать тренировку" с переносом строки
     if (totalSeconds > 0) {
@@ -227,12 +339,11 @@ function resetTimer() {
     timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
-    // ⭐ Обновляем видимость элементов
     currentExNameEl.classList.remove('hidden');
     currentExRepsEl.classList.remove('hidden');
     
     timerProgressEl.style.strokeDashoffset = 0; 
-    timerProgressEl.style.stroke = 'var(--color-text-primary)'; // Используем белый из новых переменных
+    timerProgressEl.style.stroke = 'var(--color-text-primary)'; 
 }
 
 
@@ -240,8 +351,9 @@ function resetTimer() {
 
 function showCompletion(status, move = true) {
     
-    const exId = activeWorkout.exercises[currentExIndex].id;
-    updateExerciseCardStatus(exId, status);
+    const ex = activeWorkout.exercises[currentExIndex];
+    ex.status = status; // Сохраняем статус в объекте
+    updateExerciseCardStatus(ex.id, status);
     
     if (totalSeconds > 0) {
         const circumference = 2 * Math.PI * 45;
@@ -254,6 +366,9 @@ function showCompletion(status, move = true) {
     timerTextEl.classList.remove('time', 'paused-color');
     timerTextEl.classList.add('start-text');
     skipExerciseBtn.classList.add('hidden');
+    
+    // ⭐ Сохраняем состояние после завершения/пропуска
+    saveProgress();
 
     if (move) moveToNextStep();
 }
@@ -263,41 +378,35 @@ function showSkipConfirm() {
     skipConfirmModal.classList.remove('hidden');
 }
 
-/* ====== Exit Confirmation Logic (Обновлено) ====== */
+/* ====== Exit Confirmation Logic ====== */
 
-// ⭐ НОВАЯ ФУНКЦИЯ: Обработка нажатия на кнопку "Назад"
 function handleBackButtonClick(e) {
-    e.preventDefault(); // Предотвращаем стандартный переход
+    e.preventDefault(); 
     
-    // Спрашиваем подтверждение, если тренировка начата (не 'initial')
-    if (timerState !== 'initial') {
+    if (timerState !== 'initial' && timerState !== 'completed') {
         showExitConfirmModal();
     } else {
-        // Если тренировка не начиналась, выходим сразу
         handleExitWorkout(); 
     }
 }
 
 function showExitConfirmModal() {
-    // Показываем оверлей и модальное окно
     exitConfirmOverlay.classList.remove('hidden');
     exitConfirmModal.classList.remove('hidden');
 }
 
 function hideExitConfirmModal() {
-    // Скрываем оверлей и модальное окно
     exitConfirmOverlay.classList.add('hidden');
     exitConfirmModal.classList.add('hidden');
 }
 
 function handleExitWorkout() {
-    // Очищаем таймер, если он запущен
     if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
     }
-    // Здесь должна быть логика перехода на главную страницу
-    // (например, window.location.href = 'index.html'; или использование TWA)
+    // ⭐ Очищаем прогресс при выходе
+    clearProgress();
     window.location.href = 'index.html'; 
 }
 
@@ -323,11 +432,10 @@ function moveToNextStep() {
     startRestState();
 }
 
-function startRestState() {
+function startRestState(skipNextStep = false) {
     
     const nextEx = activeWorkout.exercises[currentExIndex];
     
-    // ⭐ РЕЖИМ ОТДЫХА: Скрываем текущее упражнение и показываем информацию о следующем внутри индикатора отдыха.
     currentExNameEl.classList.add('hidden');
     currentExRepsEl.classList.add('hidden');
     
@@ -343,10 +451,19 @@ function startRestState() {
     timerTextEl.textContent = 'СТАРТ';
     timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
+
+    // Если мы не восстанавливаем прогресс, устанавливаем время отдыха (30 сек)
+    if (!skipNextStep) {
+        totalSeconds = 30; 
+        remainingSeconds = 30;
+    }
+    
+    // ⭐ Сохраняем состояние при начале отдыха
+    saveProgress();
 }
 
 
-/* ====== Exercise List UI (Без изменений) ====== */
+/* ====== Exercise List UI ====== */
 
 function renderExerciseList() {
     exercisesListContainer.innerHTML = '';
@@ -355,7 +472,11 @@ function renderExerciseList() {
         const div = document.createElement('div');
         div.className = 'exercise-card';
         div.setAttribute('data-ex-id', ex.id);
-        
+        
+        // Добавляем класс, если статус уже сохранен
+        if (ex.status === 'завершено') div.classList.add('status-completed');
+        if (ex.status === 'пропущено') div.classList.add('status-skipped');
+
         let metaParts = [];
         if (ex.reps) metaParts.push(`${ex.reps} повт.`);
         if (ex.min > 0) metaParts.push(`${ex.min} мин`);
@@ -401,12 +522,14 @@ function updateCurrentExerciseHighlight(exId) {
 }
 
 
-/* ====== End of Workout Logic (Без изменений) ====== */
+/* ====== End of Workout Logic ====== */
 
 function showEndWorkoutModal() {
     endWorkoutOverlay.classList.remove('hidden');
     endWorkoutModal.classList.remove('hidden');
     window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    // ⭐ Очищаем прогресс при завершении
+    clearProgress();
 }
 
 function repeatWorkout() {
@@ -416,14 +539,22 @@ function repeatWorkout() {
     
     document.querySelectorAll('.exercise-card').forEach(card => {
         card.classList.remove('status-completed', 'status-skipped', 'current-highlight');
+        // Сбрасываем статус в объекте
+        const exId = card.getAttribute('data-ex-id');
+        const ex = activeWorkout.exercises.find(aEx => aEx.id === Number(exId));
+        if (ex) ex.status = null;
     });
+    
+    // ⭐ Очищаем прогресс перед повтором
+    clearProgress();
     
     resetTimer();
 }
 
 function handleExit() {
+    // ⭐ Эта функция используется только в EndWorkoutModal, где прогресс уже очищен
     window.location.href = 'index.html';
 }
 
-/* ====== Start Application (Без изменений) ====== */
+/* ====== Start Application ====== */
 initWorkoutPlayer();
