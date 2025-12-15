@@ -52,8 +52,6 @@ const profileAvatar = document.getElementById('profileAvatar');
 const profileName = document.getElementById('profileName');
 const createdCount = document.getElementById('createdCount');
 const completedCount = document.getElementById('completedCount');
-const notifyTime = document.getElementById('notifyTime');
-const saveProfileBtn = document.getElementById('saveProfileBtn');
 
 /* View modal */
 const viewModal = document.getElementById('viewModal');
@@ -148,7 +146,7 @@ async function getProfile() {
     if (profileName) profileName.textContent = profile.username ? `@${profile.username}` : (tgUser.first_name || "");
     if (createdCount) createdCount.textContent = profile.total_workouts || 0;
     if (completedCount) completedCount.textContent = profile.completed_workouts || 0;
-    if (notifyTime) notifyTime.value = profile.notify_time || '';
+    // УДАЛЕНО: if (notifyTime) notifyTime.value = profile.notify_time || '';
 
     if (overlay && profileModal) {
         overlay.classList.add('show'); 
@@ -538,13 +536,8 @@ function closeProfileModal(hideOverlayFlag = true) {
 
 if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => closeProfileModal(true));
 
-if (saveProfileBtn) {
-    saveProfileBtn.addEventListener('click', async () => {
-        if (notifyTime) await saveProfileToServer({ Id: tgUser.id, NotifyTime: notifyTime.value || '' });
-        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        closeProfileModal(true);
-    });
-}
+// УДАЛЕН ВЕСЬ БЛОК КОДА, СВЯЗАННЫЙ С СОХРАНЕНИЕМ ВРЕМЕНИ УВЕДОМЛЕНИЙ:
+// if (saveProfileBtn) { ... }
 
 
 // --- НОВЫЕ/ИЗМЕНЕННЫЕ ФУНКЦИИ УПРАВЛЕНИЯ РЕДАКТИРОВАНИЕМ В VIEW MODAL ---
@@ -863,8 +856,8 @@ function renderViewExercises() {
         const editForm = `
             <div class="view-edit-form" data-index="${idx}">
                 <div style="font-weight:700; margin-bottom:10px;">Редактирование: ${ex.name}</div>
-                <input type="text" value="${ex.name}" placeholder="Название упражнения" data-field="name">
-                <input type="text" value="${ex.desc || ''}" placeholder="Описание" data-field="desc">
+                <input type="text" value="${ex.name}" placeholder="Название упражнения *" data-field="name">
+                <input type="text" value="${ex.desc || ''}" placeholder="Описание (необязательно)" data-field="desc">
                 <input type="number" value="${ex.reps}" placeholder="Повторения *" min="1" data-field="reps">
                 <div class="time-row">
                     <input type="number" value="${ex.min}" placeholder="Мин" min="0" data-field="min">
