@@ -64,6 +64,8 @@ function setupUI() {
     workoutTitleEl.textContent = activeWorkout.title;
     timerControlEl.addEventListener('click', handleTimerClick);
     skipExerciseBtn.addEventListener('click', showSkipConfirm);
+    // ⭐ ТАКЖЕ ДОБАВЛЕНА ЛОГИКА ДЛЯ СКРЫТИЯ TOP BAR НА ГЛАВНОЙ
+    window.addEventListener('scroll', handleScroll);
     backToMainBtn.addEventListener('click', handleExit);
     repeatWorkoutBtn.addEventListener('click', repeatWorkout);
     exitToMainBtn.addEventListener('click', handleExit);
@@ -75,8 +77,16 @@ function setupUI() {
     timerProgressEl.style.strokeDasharray = circumference;
 }
 
+let lastScroll = 0;
+function handleScroll() {
+    const topBar = document.getElementById('topBar');
+    const cur = window.pageYOffset || document.documentElement.scrollTop;
+    // ⭐ ЛОГИКА СКРЫТИЯ/ПОКАЗА TOP BAR ПРИ СКРОЛЛЕ, КАК НА ГЛАВНОЙ
+    topBar.style.transform = cur > lastScroll ? 'translateY(-100%)' : 'translateY(0)';
+    lastScroll = cur <= 0 ? 0 : cur;
+}
 
-/* ====== Timer Logic and Control (Обновлено) ====== */
+/* ====== Timer Logic and Control ====== */
 
 function handleTimerClick() {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
@@ -106,7 +116,7 @@ function startTimer() {
         // Устанавливаем отображение времени (цифры)
         timerTextEl.textContent = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
         timerTextEl.classList.add('time');
-        timerTextEl.classList.remove('paused-color', 'large-text');
+        timerTextEl.classList.remove('paused-color', 'start-text');
         
         if (remainingSeconds === 0) {
             showCompletion('завершено', false); 
@@ -118,7 +128,6 @@ function startTimer() {
         skipExerciseBtn.classList.add('hidden'); 
     }
 
-    // Критическое исправление: Обновляем анимацию немедленно при старте/возобновлении.
     if (remainingSeconds > 0) {
         updateTimerDisplay(); 
         timerInterval = setInterval(tick, 1000);
@@ -149,17 +158,11 @@ function tick() {
     updateTimerDisplay();
 }
 
-/**
- * ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Логика анимации по часовой стрелке
- */
 function updateTimerDisplay() {
     timerTextEl.textContent = formatTime(remainingSeconds);
     
     const circumference = 2 * Math.PI * 45;
     
-    // ⭐ Формула для убывания по часовой стрелке:
-    // Мы вычисляем, какую часть круга нужно *скрыть* (strokeDashoffset)
-    // Отношение завершенного времени: (totalSeconds - remainingSeconds) / totalSeconds
     const completedRatio = (totalSeconds - remainingSeconds) / totalSeconds;
     const offset = circumference * completedRatio;
     
@@ -198,7 +201,7 @@ function resetTimer() {
     timerState = 'initial';
     // Для таймеров > 0 - "Начать тренировку", для "Далее" - "Далее"
     timerTextEl.textContent = totalSeconds > 0 ? 'Начать тренировку' : 'Далее';
-    timerTextEl.classList.add('large-text');
+    timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
     
     // Сброс круговой полосы на полный круг (0 завершено)
@@ -215,7 +218,6 @@ function showCompletion(status, move = true) {
     updateExerciseCardStatus(exId, status);
     
     if (totalSeconds > 0) {
-        // Устанавливаем полный прогресс (скрываем всю полосу)
         const circumference = 2 * Math.PI * 45;
         timerProgressEl.style.strokeDashoffset = circumference;
         timerProgressEl.style.stroke = (status === 'завершено') ? 'var(--color-success)' : 'var(--color-error)';
@@ -224,7 +226,7 @@ function showCompletion(status, move = true) {
     timerState = 'completed'; 
     timerTextEl.textContent = 'Далее';
     timerTextEl.classList.remove('time', 'paused-color');
-    timerTextEl.classList.add('large-text');
+    timerTextEl.classList.add('start-text');
     skipExerciseBtn.classList.add('hidden');
 
     if (move) moveToNextStep();
@@ -261,21 +263,21 @@ function startRestState() {
     
     const nextEx = activeWorkout.exercises[currentExIndex];
     
-    // ⭐ УПРОЩЕНИЕ: Оставляем только текст "ОТДЫХ"
-    currentExNameEl.textContent = "ОТДЫХ"; 
-    currentExRepsEl.textContent = ``; // Очищаем или ставим пустую строку
+    // ⭐ ИСПРАВЛЕНИЕ: В режиме отдыха отображаем название упражнения и повторения. 
+    // Блок restIndicator отображает "ОТДЫХ", поэтому не дублируем его в ex-name.
+    currentExNameEl.textContent = nextEx.name; 
+    currentExRepsEl.textContent = `Повторения: ${nextEx.reps}`; 
     
     restIndicator.classList.remove('hidden');
     nextExNameHint.textContent = nextEx.name;
     
-    // Прячем полосу (показываем, что она полностью завершилась)
     const circumference = 2 * Math.PI * 45;
     timerProgressEl.style.strokeDashoffset = circumference; 
     timerProgressEl.style.stroke = 'var(--color-warning)';
     
     timerState = 'rest'; 
     timerTextEl.textContent = 'СТАРТ';
-    timerTextEl.classList.add('large-text');
+    timerTextEl.classList.add('start-text');
     timerTextEl.classList.remove('time', 'paused-color');
 }
 
@@ -290,21 +292,18 @@ function renderExerciseList() {
         div.className = 'exercise-card';
         div.setAttribute('data-ex-id', ex.id);
         
-        let timeStr = '';
-        if (ex.min > 0 || ex.sec > 0) {
-            // ⭐ ИСПРАВЛЕНИЕ: Добавлены пробелы вокруг разделителя "|"
-            timeStr = ` | ${ex.min > 0 ? ex.min + ' мин' : ''} ${ex.sec > 0 ? ex.sec + ' сек' : ''}`.trim();
-            if (timeStr.startsWith('|')) timeStr = ` ${timeStr}`;
-            if (timeStr.endsWith('|')) timeStr = `${timeStr} `;
-        }
-        // Убираем лишние пробелы и "|" если нет времени
-        timeStr = timeStr.replace(/ \|/g, ' |').trim();
-        if (timeStr === '|') timeStr = '';
+        let metaParts = [];
+        if (ex.reps) metaParts.push(`${ex.reps} повт.`);
+        if (ex.min > 0) metaParts.push(`${ex.min} мин`);
+        if (ex.sec > 0) metaParts.push(`${ex.sec} сек`);
+        
+        // ⭐ ИСПРАВЛЕНИЕ: Разделитель с пробелами
+        const metaStr = metaParts.join(' | ');
         
         div.innerHTML = `
             <div class="exercise-card-info">
                 <div class="exercise-card-title">${index + 1}. ${ex.name}</div>
-                <div class="exercise-card-meta">${ex.reps} повт.${timeStr}</div>
+                <div class="exercise-card-meta">${metaStr}</div>
             </div>
             <div class="exercise-card-status"></div>
         `;

@@ -1,32 +1,40 @@
-/* ====== gowk.css - Самодостаточные стили для плеера тренировок (Окончательная версия) ====== */
+/* ====== gowk.css - Самодостаточные стили для плеера тренировок (Синхронизация с style.css) ====== */
 
-/* --- Базовые переменные (Фиолетовая тема) --- */
+/* --- Базовые переменные (Используем цвета с главной страницы) --- */
 :root {
-    --color-purple-dark: #1a0033; /* Глубокий фиолетовый для фона */
-    --color-purple-medium: #2e005c; /* Фон для карточек */
-    --color-purple-light: #4f009e;
+    /* Переменные из style.css */
+    --bg1: #1a002e; 
+    --bg2: #3f0071; 
+    --glass: rgba(255, 255, 255, 0.08); 
+    --glass-2: rgba(255, 255, 255, 0.12);
+    --accent: #8a5cff; 
+    --primary: #5d1fff; 
+    --white: #fff;
     
-    --color-primary: #8a2be2; /* Фиолетовый акцент */
-    --color-primary-light: #a462ec; /* Светлый фиолетовый */
-    
-    --color-bg: var(--color-purple-dark);
-    --color-card-bg: var(--color-purple-medium);
-    --color-card-bg-darker: #200040; 
+    /* Адаптированные переменные */
+    --color-bg: linear-gradient(135deg, var(--bg1), var(--bg2)); /* Градиентный фон */
+    --color-card-bg: var(--bg1); /* Фон для карточек */
+    --color-card-bg-light: var(--bg2); /* Для более светлых элементов */
 
-    --color-text-primary: #ffffff;
+    --color-primary: var(--primary); /* Основная кнопка */
+    --color-primary-light: var(--accent); /* Акцент для таймера/подсветки */
+    
+    --color-text-primary: var(--white);
     --color-text-secondary: #cccccc; 
     --color-success: #28a745; 
     --color-error: #dc3545; 
-    --color-warning: #ffc107;
+    --color-warning: #ffc107; /* Для ОТДЫХА */
 }
 
-/* --- Общие стили для Body и Сброс --- */
+/* --- Общие стили для Body и Сброс (Градиентный фон) --- */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: var(--color-bg); /* Фиолетовый фон */
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* ⭐ ГРАДИЕНТНЫЙ ФОН: Как на главной странице */
+    background: var(--color-bg); 
     color: var(--color-text-primary);
     margin: 0;
-    padding-top: 50px; 
+    padding-top: 20vh; /* Отступ под высокую панель */
+    min-height: 100vh;
     box-sizing: border-box;
 }
 *, *::before, *::after { box-sizing: inherit; }
@@ -38,36 +46,56 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 50px;
-    background: var(--color-bg); /* Цвет как фон для соответствия дизайну */
+    /* ⭐ ВЫСОТА И СТИЛЬ: Как на главной странице */
+    height: 20vh; 
+    padding: 20px 16px;
+    padding-bottom: 20px;
+    display: flex;
+    align-items: flex-end; /* Выравнивание элементов внизу */
+    justify-content: space-between;
+    
+    backdrop-filter: blur(15px); 
+    background: var(--glass); 
+    border-bottom: 1px solid var(--glass-2);
+    border-radius: 0 0 20px 20px; /* Скругление внизу */
     z-index: 1000;
+}
+.left-group {
+    display: flex;
+    align-items: flex-end;
+}
+/* ⭐ КНОПКА НАЗАД: Стилизация под .add-btn с главной страницы */
+.back-btn {
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    color: var(--white);
+    font-size: 24px; 
+    font-weight: 600;
+    line-height: 1; 
+    width: 40px; 
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
-    padding: 0 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    justify-content: center;
+    padding: 0;
+    transition: background 0.2s;
+    text-decoration: none;
 }
 .top-title {
     flex-grow: 1;
     text-align: center;
     margin: 0 10px;
-    font-size: 1.2em;
-    font-weight: 600;
+    font-size: 1.5em; /* Немного крупнее для читаемости */
+    font-weight: 700;
+    color: var(--color-text-primary);
+    align-self: flex-end;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--color-text-primary);
 }
-.back-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-primary); 
-    padding: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.back-btn svg { display: block; }
+
 
 /* --- Основной контент --- */
 .gowk-content {
@@ -84,11 +112,12 @@ body {
 .current-state-box {
     text-align: center;
     margin-bottom: 20px;
+    min-height: 50px; /* Обеспечивает стабильность макета */
 }
 .current-state-box .ex-name {
     font-size: 1.5em;
     font-weight: 700;
-    color: var(--color-primary-light); /* Немного светлее */
+    color: var(--color-primary-light);
     min-height: 24px;
 }
 .current-state-box .ex-reps {
@@ -105,7 +134,7 @@ body {
 .rest-text {
     font-size: 1.5em;
     font-weight: 800;
-    color: var(--color-warning); /* Желтый/Оранжевый для "ОТДЫХ" */
+    color: var(--color-warning); 
     margin: 0 0 5px 0;
 }
 .next-ex-hint {
@@ -125,11 +154,11 @@ body {
     position: relative;
     margin-bottom: 30px;
     border-radius: 50%;
-    /* ГРАДИЕНТ: от темного к светлому фиолетовому в центре */
+    /* ГРАДИЕНТ: Фиолетовый градиент из предыдущей версии (соответствует стилистике) */
     background: radial-gradient(circle at center, 
         var(--color-primary-light) 0%, 
         var(--color-primary) 50%, 
-        var(--color-purple-medium) 100% 
+        var(--color-card-bg-light) 100% 
     );
     box-shadow: 0 0 25px rgba(138, 43, 226, 0.4);
 }
@@ -141,13 +170,13 @@ body {
 
 .timer-background {
     fill: transparent; 
-    stroke: var(--color-card-bg-darker);
+    stroke: var(--bg1); /* Фон, немного темнее, чем акцент */
     stroke-width: 8; 
 }
 
 .timer-progress {
     fill: none;
-    stroke: var(--color-primary-light); /* Изменено на светло-фиолетовый акцент */
+    stroke: var(--color-primary-light); /* Светло-фиолетовый акцент для анимации */
     stroke-width: 8;
     stroke-linecap: round;
     transform: rotate(-90deg); 
@@ -158,25 +187,25 @@ body {
 #timerControl { cursor: pointer; }
 .timer-hitbox { fill: transparent; cursor: pointer; }
 
-/* ⭐ ИСПРАВЛЕНИЕ РАЗМЕРА ТЕКСТА (чтобы помещалось) */
+/* ⭐ ИСПРАВЛЕНИЕ: Уменьшение размера текста, чтобы помещалось */
 .timer-text { 
     fill: var(--color-text-primary); 
     font-weight: 700; 
     user-select: none; 
     transition: fill 0.3s; 
 }
-.timer-text.large-text { 
-    font-size: 18px; /* Для "Начать тренировку" или "СТАРТ" */
-    letter-spacing: 0.5px;
+.timer-text.start-text { 
+    font-size: 16px; /* Для "Начать тренировку" или "СТАРТ" */
+    font-weight: 600;
 }
 .timer-text.time { 
-    font-size: 44px; /* Для цифрового таймера (01:56) */
+    font-size: 38px; /* Для цифрового таймера (01:56) */
     font-weight: 900; 
 }
 .timer-text.paused-color { fill: var(--color-text-secondary); }
 
 
-/* --- Кнопки --- */
+/* --- Кнопки и Списки --- */
 .btn {
     padding: 12px 20px;
     border-radius: 10px;
@@ -193,7 +222,7 @@ body {
 }
 .btn.ghost {
     background-color: transparent;
-    border: 1px solid var(--color-primary-light); /* Обводка фиолетовым */
+    border: 1px solid var(--color-primary-light); 
     color: var(--color-text-primary);
 }
 .skip-btn {
@@ -202,7 +231,7 @@ body {
     margin-bottom: 30px;
 }
 
-/* --- Список упражнений --- */
+/* --- Список упражнений (Как на главной) --- */
 .exercises-list-header {
     font-size: 1.2em;
     font-weight: 600;
@@ -211,12 +240,13 @@ body {
     max-width: 500px;
     padding: 0 15px;
     box-sizing: border-box;
+    margin-bottom: 10px;
 }
 
 .exercises-list {
     width: 100%;
     max-width: 500px;
-    padding: 15px;
+    padding: 0 15px; /* Убрал внутренний паддинг, он есть в карточке */
     box-sizing: border-box;
     display: flex;
     flex-direction: column; 
@@ -227,9 +257,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--color-card-bg); /* Фиолетовый фон карточек как на главном экране */
+    background: var(--color-card-bg); /* Темный фон, как на главной */
     padding: 15px;
-    border-radius: 10px; /* Скругленные углы */
+    border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 2px solid transparent; 
     transition: border 0.3s, box-shadow 0.3s;
