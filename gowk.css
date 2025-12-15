@@ -92,13 +92,13 @@ body {
 
 /* --- Основной контент --- */
 .gowk-content {
-padding-top: 20px;
-padding-bottom: 80px;
-display: flex;
-flex-direction: column;
-align-items: center;
-max-width: 500px;
-margin: 0 auto;
+    padding-top: 20px;
+    padding-bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
 /* --- Текущее упражнение / Состояние --- */
@@ -156,14 +156,21 @@ margin: 0 auto;
 }
 
 
-/* --- Таймер-круг (Исправлен текст!) --- */
+/* --- Таймер-круг (Обновленные стили) --- */
 .timer-container {
     width: 250px;
     height: 250px;
     position: relative;
     margin-bottom: 30px;
     border-radius: 50%;
-    background: transparent; /* Убран фон, так как он не нужен при использовании SVG */
+    /* ⭐ ФИКС 1: Градиент от темного края к светлому центру */
+    background: radial-gradient(circle at center, 
+    var(--color-primary-light) 0%, /* Светлый центр */
+    var(--color-primary) 50%, /* Промежуточный цвет */
+    var(--color-card-bg) 100% /* Темный край (Darker BG) */
+    ); 
+    /* ⭐ ФИКС 1: Тень для выделения кнопки */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6); 
 }
 
 .timer-circle {
@@ -173,13 +180,14 @@ margin: 0 auto;
 
 .timer-background {
     fill: transparent; 
-    stroke: var(--color-card-bg); 
+    stroke: var(--color-card-bg); /* Темный фон для обводки */
     stroke-width: 8; 
 }
 
 .timer-progress {
     fill: none;
-    stroke: var(--color-primary-light); 
+     /* ⭐ ФИКС 2: Цвет анимации - используем основной primary цвет для контраста, но в общей гамме */
+    stroke: var(--color-primary); 
     stroke-width: 8;
     stroke-linecap: round;
     transform: rotate(-90deg); 
@@ -190,7 +198,7 @@ margin: 0 auto;
 #timerControl { cursor: pointer; }
 .timer-hitbox { fill: transparent; cursor: pointer; }
 
-/* ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ТЕКСТА ТАЙМЕРА */
+/* ⭐ ФИКС 3: КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ РАЗМЕРА ТЕКСТА ТАЙМЕРА */
 .timer-text { 
     fill: var(--color-text-primary); 
     font-weight: 700; 
@@ -198,22 +206,21 @@ margin: 0 auto;
     transition: fill 0.3s; 
 }
 .timer-text.start-text { 
-    /* Текст "Начать тренировку" - размер уменьшен, выравнивание по центру */
+     /* Текст "Начать тренировку" */
     font-size: 14px; 
     font-weight: 600;
 }
 .timer-text.time { 
-    /* Цифровой таймер - размер уменьшен */
-    font-size: 30px; 
+    /* ⭐ ИЗМЕНЕНО: Уменьшение размера цифрового таймера до 26px */
+    font-size: 26px; 
     font-weight: 900; 
-    /* Центрируем время */
     dominant-baseline: middle; 
 }
 
 .timer-text.paused-color { fill: var(--color-text-secondary); }
 
 
-/* --- Кнопки и Списки (Без изменений) --- */
+/* --- Кнопки и Списки --- */
 .btn {
     padding: 12px 20px;
     border-radius: 10px;
@@ -287,7 +294,7 @@ margin: 0 auto;
     box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-/* --- Модальные окна (Без изменений) --- */
+/* --- Модальные окна --- */
 .overlay {
     position: fixed;
     top: 0;
