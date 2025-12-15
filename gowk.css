@@ -1,8 +1,8 @@
-/* ====== gowk.css - Самодостаточные стили для плеера тренировок (Синхронизация с style.css) ====== */
+/* ====== gowk.css - Самодостаточные стили для плеера тренировок (Окончательная версия) ====== */
 
-/* --- Базовые переменные (Используем цвета с главной страницы) --- */
+/* --- Базовые переменные (Синхронизация с style.css) --- */
 :root {
-    /* Переменные из style.css */
+    /* Переменные из style.css (Предполагаем, что они такие) */
     --bg1: #1a002e; 
     --bg2: #3f0071; 
     --glass: rgba(255, 255, 255, 0.08); 
@@ -12,28 +12,26 @@
     --white: #fff;
     
     /* Адаптированные переменные */
-    --color-bg: linear-gradient(135deg, var(--bg1), var(--bg2)); /* Градиентный фон */
-    --color-card-bg: var(--bg1); /* Фон для карточек */
-    --color-card-bg-light: var(--bg2); /* Для более светлых элементов */
+    --color-bg: linear-gradient(135deg, var(--bg1), var(--bg2)); 
+    --color-card-bg: var(--bg1); 
 
-    --color-primary: var(--primary); /* Основная кнопка */
+    --color-primary: var(--primary); 
     --color-primary-light: var(--accent); /* Акцент для таймера/подсветки */
     
     --color-text-primary: var(--white);
     --color-text-secondary: #cccccc; 
     --color-success: #28a745; 
     --color-error: #dc3545; 
-    --color-warning: #ffc107; /* Для ОТДЫХА */
+    --color-warning: #ffc107; 
 }
 
-/* --- Общие стили для Body и Сброс (Градиентный фон) --- */
+/* --- Общие стили для Body и Сброс --- */
 body {
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    /* ⭐ ГРАДИЕНТНЫЙ ФОН: Как на главной странице */
     background: var(--color-bg); 
     color: var(--color-text-primary);
     margin: 0;
-    padding-top: 20vh; /* Отступ под высокую панель */
+    padding-top: 20vh; 
     min-height: 100vh;
     box-sizing: border-box;
 }
@@ -46,28 +44,29 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    /* ⭐ ВЫСОТА И СТИЛЬ: Как на главной странице */
     height: 20vh; 
     padding: 20px 16px;
     padding-bottom: 20px;
     display: flex;
-    align-items: flex-end; /* Выравнивание элементов внизу */
+    align-items: flex-end; 
     justify-content: space-between;
     
+    /* ⭐ АНИМАЦИЯ И СТИЛИЗАЦИЯ КАК НА ГЛАВНОЙ */
     backdrop-filter: blur(15px); 
     background: var(--glass); 
     border-bottom: 1px solid var(--glass-2);
-    border-radius: 0 0 20px 20px; /* Скругление внизу */
+    border-radius: 0 0 20px 20px; 
+    transition: transform 0.3s ease-out; /* Плавное выезжание/скрытие */
     z-index: 1000;
 }
 .left-group {
     display: flex;
     align-items: flex-end;
 }
-/* ⭐ КНОПКА НАЗАД: Стилизация под .add-btn с главной страницы */
+/* ⭐ КНОПКА НАЗАД: Полупрозрачная как кнопка '+' на главной */
 .back-btn {
-    background: var(--accent);
-    border: none;
+    background: var(--glass); /* Полупрозрачный фон */
+    border: 1px solid var(--glass-2); /* Тонкая рамка */
     cursor: pointer;
     color: var(--white);
     font-size: 24px; 
@@ -82,12 +81,13 @@ body {
     padding: 0;
     transition: background 0.2s;
     text-decoration: none;
+    backdrop-filter: blur(5px);
 }
 .top-title {
     flex-grow: 1;
     text-align: center;
     margin: 0 10px;
-    font-size: 1.5em; /* Немного крупнее для читаемости */
+    font-size: 1.5em; 
     font-weight: 700;
     color: var(--color-text-primary);
     align-self: flex-end;
@@ -112,7 +112,7 @@ body {
 .current-state-box {
     text-align: center;
     margin-bottom: 20px;
-    min-height: 50px; /* Обеспечивает стабильность макета */
+    min-height: 50px; 
 }
 .current-state-box .ex-name {
     font-size: 1.5em;
@@ -147,20 +147,15 @@ body {
 }
 
 
-/* --- Таймер-круг (Градиент и Текст) --- */
+/* --- Таймер-круг (ВОЗВРАЩЕН ПРЕДЫДУЩИЙ ДИЗАЙН, УМЕНЬШЕН ТЕКСТ) --- */
 .timer-container {
     width: 250px;
     height: 250px;
     position: relative;
     margin-bottom: 30px;
     border-radius: 50%;
-    /* ГРАДИЕНТ: Фиолетовый градиент из предыдущей версии (соответствует стилистике) */
-    background: radial-gradient(circle at center, 
-        var(--color-primary-light) 0%, 
-        var(--color-primary) 50%, 
-        var(--color-card-bg-light) 100% 
-    );
-    box-shadow: 0 0 25px rgba(138, 43, 226, 0.4);
+    /* Убрал градиентный фон */
+    background: transparent; 
 }
 
 .timer-circle {
@@ -170,7 +165,7 @@ body {
 
 .timer-background {
     fill: transparent; 
-    stroke: var(--bg1); /* Фон, немного темнее, чем акцент */
+    stroke: var(--color-card-bg); /* Темный фон круга */
     stroke-width: 8; 
 }
 
@@ -187,7 +182,7 @@ body {
 #timerControl { cursor: pointer; }
 .timer-hitbox { fill: transparent; cursor: pointer; }
 
-/* ⭐ ИСПРАВЛЕНИЕ: Уменьшение размера текста, чтобы помещалось */
+/* ⭐ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: МАКСИМАЛЬНО УМЕНЬШЕННЫЙ РАЗМЕР ТЕКСТА ВНУТРИ КРУГА */
 .timer-text { 
     fill: var(--color-text-primary); 
     font-weight: 700; 
@@ -195,11 +190,11 @@ body {
     transition: fill 0.3s; 
 }
 .timer-text.start-text { 
-    font-size: 16px; /* Для "Начать тренировку" или "СТАРТ" */
+    font-size: 14px; /* Для "Начать тренировку" или "СТАРТ" */
     font-weight: 600;
 }
 .timer-text.time { 
-    font-size: 38px; /* Для цифрового таймера (01:56) */
+    font-size: 32px; /* Для цифрового таймера (01:56) */
     font-weight: 900; 
 }
 .timer-text.paused-color { fill: var(--color-text-secondary); }
@@ -246,7 +241,7 @@ body {
 .exercises-list {
     width: 100%;
     max-width: 500px;
-    padding: 0 15px; /* Убрал внутренний паддинг, он есть в карточке */
+    padding: 0 15px; 
     box-sizing: border-box;
     display: flex;
     flex-direction: column; 
@@ -257,7 +252,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--color-card-bg); /* Темный фон, как на главной */
+    background: var(--color-card-bg); 
     padding: 15px;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -285,7 +280,6 @@ body {
 }
 
 .current-highlight {
-    /* Дополнительное выделение текущего упражнения */
     box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 

@@ -18,6 +18,7 @@ let remainingSeconds = 0;
 let timerInterval = null;
 
 /* ====== Elements (gowk.html) ====== */
+const topBar = document.getElementById('topBar');
 const workoutTitleEl = document.getElementById('workoutTitle');
 const currentExNameEl = document.getElementById('currentExName');
 const currentExRepsEl = document.getElementById('currentExReps');
@@ -64,8 +65,10 @@ function setupUI() {
     workoutTitleEl.textContent = activeWorkout.title;
     timerControlEl.addEventListener('click', handleTimerClick);
     skipExerciseBtn.addEventListener('click', showSkipConfirm);
-    // ⭐ ТАКЖЕ ДОБАВЛЕНА ЛОГИКА ДЛЯ СКРЫТИЯ TOP BAR НА ГЛАВНОЙ
-    window.addEventListener('scroll', handleScroll);
+    
+    // ⭐ ЛОГИКА СКРЫТИЯ/ПОЯВЛЕНИЯ TOP BAR С ПЛАВНОЙ АНИМАЦИЕЙ (как в script.js)
+    window.addEventListener('scroll', handleScroll); 
+    
     backToMainBtn.addEventListener('click', handleExit);
     repeatWorkoutBtn.addEventListener('click', repeatWorkout);
     exitToMainBtn.addEventListener('click', handleExit);
@@ -79,12 +82,12 @@ function setupUI() {
 
 let lastScroll = 0;
 function handleScroll() {
-    const topBar = document.getElementById('topBar');
     const cur = window.pageYOffset || document.documentElement.scrollTop;
-    // ⭐ ЛОГИКА СКРЫТИЯ/ПОКАЗА TOP BAR ПРИ СКРОЛЛЕ, КАК НА ГЛАВНОЙ
+    // Используем translateY(-100%) для плавного скрытия вверх
     topBar.style.transform = cur > lastScroll ? 'translateY(-100%)' : 'translateY(0)';
     lastScroll = cur <= 0 ? 0 : cur;
 }
+
 
 /* ====== Timer Logic and Control ====== */
 
@@ -94,7 +97,6 @@ function handleTimerClick() {
     if (timerState === 'initial') {
         startTimer(); 
     } else if (timerState === 'rest') {
-        // Выход из режима отдыха. Загружаем данные следующего упражнения и стартуем его.
         resetTimer(); 
         startTimer(); 
     } else if (timerState === 'running') {
@@ -206,7 +208,7 @@ function resetTimer() {
     
     // Сброс круговой полосы на полный круг (0 завершено)
     timerProgressEl.style.strokeDashoffset = 0; 
-    timerProgressEl.style.stroke = 'var(--color-primary-light)'; // Цвет полосы
+    timerProgressEl.style.stroke = 'var(--color-primary-light)'; 
 }
 
 
@@ -263,8 +265,8 @@ function startRestState() {
     
     const nextEx = activeWorkout.exercises[currentExIndex];
     
-    // ⭐ ИСПРАВЛЕНИЕ: В режиме отдыха отображаем название упражнения и повторения. 
-    // Блок restIndicator отображает "ОТДЫХ", поэтому не дублируем его в ex-name.
+    // ⭐ ИСПРАВЛЕНИЕ: Оставляем только "ОТДЫХ" в отдельном блоке. 
+    // В ex-name и ex-reps показываем информацию о СЛЕДУЮЩЕМ упражнении.
     currentExNameEl.textContent = nextEx.name; 
     currentExRepsEl.textContent = `Повторения: ${nextEx.reps}`; 
     
