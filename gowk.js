@@ -18,6 +18,7 @@ let totalSeconds = 0;
 let remainingSeconds = 0;
 let timerInterval = null;
 let endTime = null; // Точное время (ms), когда таймер должен обнулиться
+let audioCtx = null;
 
 /* ====== Elements (gowk.html) ====== */
 const topBar = document.getElementById('topBar');
@@ -223,6 +224,13 @@ function handleScroll() {
 /* ====== Timer Logic and Control ====== */
 
 function handleTimerClick() {
+    // Разблокируем аудио-контекст при первом же клике
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light'); 
 
     if (timerState === 'initial') {
@@ -280,28 +288,37 @@ function pauseTimer() {
 }
 
 function tick() {
-    if (remainingSeconds <= 0) {
+    const now = Date.now();
+    const diff = Math.ceil((endTime - now) / 1000);
+
+    // Если время вышло (или меньше 0)
+    if (diff <= 0) {
+        remainingSeconds = 0;
+        updateTimerDisplay(); // Рисуем 00:00
+        
         clearInterval(timerInterval);
         timerInterval = null;
+
+        // ⭐ Сначала звук и вибрация
         playTimerSound();
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        showCompletion('завершено'); 
+
+        // Затем логика переключения
+        if (timerState === 'rest') {
+            resetTimer();
+            startTimer();
+        } else {
+            showCompletion('завершено');
+        }
         return;
     }
 
-    remainingSeconds--;
+    // Если время еще есть
+    remainingSeconds = diff;
     updateTimerDisplay();
     
-    // Сохраняем прогресс не каждую секунду (для производительности), а раз в 2 секунды
-    if (remainingSeconds % 2 === 0) saveProgress(); 
-
-    // Дополнительная проверка: если после уменьшения стал 0 — сразу завершаем
-    if (remainingSeconds <= 0) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        updateTimerDisplay(); // Показать 00:00
-        showCompletion('завершено');
-    }
+    // Сохраняем прогресс раз в 2 секунды для надежности
+    if (remainingSeconds % 2 === 0) saveProgress();
 }
 
 function updateTimerDisplay() {
@@ -595,25 +612,33 @@ function updateTimerVisualState() {
 
 function playTimerSound() {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Создаем контекст только один раз
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // ⭐ КЛЮЧЕВОЙ МОМЕНТ: Если контекст "спит", будим его
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
 
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
 
-        oscillator.type = 'sine'; // Мягкий звук
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Нота Ля
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
         
-        // Плавное нарастание и затухание, чтобы не было щелчка
         gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
-        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
 
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.3);
+        oscillator.stop(audioCtx.currentTime + 0.4);
     } catch (e) {
-        console.log("Автовоспроизведение звука заблокировано браузером");
+        console.error("Ошибка звука:", e);
     }
 }
 
