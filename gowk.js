@@ -17,6 +17,7 @@ let timerState = 'initial';
 let totalSeconds = 0; 
 let remainingSeconds = 0;
 let timerInterval = null;
+let endTime = null; // Точное время (ms), когда таймер должен обнулиться
 
 /* ====== Elements (gowk.html) ====== */
 const topBar = document.getElementById('topBar');
@@ -53,7 +54,22 @@ const cancelSkipBtn = document.getElementById('cancelSkipBtn');
 
 
 /* ====== Local Storage Handlers ====== */
+// Проверка времени при возврате в приложение
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (timerState === 'running' || timerState === 'rest')) {
+        if (!endTime) return;
+        const now = Date.now();
+        const diff = Math.ceil((endTime - now) / 1000);
 
+        if (diff <= 0) {
+            remainingSeconds = 0;
+            finishStep(); // Создадим эту функцию ниже
+        } else {
+            remainingSeconds = diff;
+            updateTimerDisplay();
+        }
+    }
+});
 /**
  * Сохраняет текущее состояние тренировки в LocalStorage
  */
@@ -224,37 +240,28 @@ function handleTimerClick() {
 }
 
 function startTimer() {
-    clearInterval(timerInterval);
+    clearInterval(timerInterval);
+    
+    // ⭐ ГЛАВНОЕ: ставим метку времени окончания
+    endTime = Date.now() + (remainingSeconds * 1000);
 
-    if (timerState === 'initial') {
-        timerState = 'running';
-        restIndicator.classList.add('hidden');
-        
-        timerTextEl.innerHTML = remainingSeconds > 0 ? formatTime(remainingSeconds) : 'Далее';
-        timerTextEl.classList.add('time');
-        timerTextEl.classList.remove('paused-color', 'start-text');
-        
-        currentExNameEl.classList.remove('hidden');
-        currentExRepsEl.classList.remove('hidden');
+    if (timerState === 'initial') {
+        timerState = 'running';
+        restIndicator.classList.add('hidden');
+        timerTextEl.classList.add('time');
+        timerTextEl.classList.remove('paused-color', 'start-text');
+    } else if (timerState === 'paused') {
+        timerState = (restIndicator.classList.contains('hidden')) ? 'running' : 'rest';
+        timerTextEl.classList.remove('paused-color');
+        skipExerciseBtn.classList.add('hidden'); 
+    }
 
-        if (remainingSeconds === 0) {
-            showCompletion('завершено', false); 
-            return;
-        }
-    } else if (timerState === 'paused') {
-        timerState = 'running';
-        timerTextEl.classList.remove('paused-color');
-        skipExerciseBtn.classList.add('hidden'); 
-    }
-
-    // ⭐ Сохраняем состояние при старте
     saveProgress();
-
-    if (remainingSeconds > 0) {
-        updateTimerDisplay(); 
-        timerInterval = setInterval(tick, 1000);
-    }
-updateTimerVisualState(); // Добавить сюда
+    if (remainingSeconds > 0) {
+        updateTimerDisplay(); 
+        timerInterval = setInterval(tick, 250); // Проверяем чаще для точности
+    }
+    updateTimerVisualState();
 }
 
 function pauseTimer() {
@@ -273,19 +280,16 @@ function pauseTimer() {
 }
 
 function tick() {
-    remainingSeconds--;
+    const now = Date.now();
+    const diff = Math.ceil((endTime - now) / 1000);
 
-    // ⭐ Сохраняем прогресс каждую секунду
-    saveProgress(); 
-
-    if (remainingSeconds <= 0) {
-        clearInterval(timerInterval);
-        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-        showCompletion('завершено'); 
-        return;
-    }
-
-    updateTimerDisplay();
+    if (diff <= 0) {
+        finishStep();
+    } else {
+        remainingSeconds = diff;
+        updateTimerDisplay();
+        if (remainingSeconds % 2 === 0) saveProgress(); // Сохраняем раз в 2 секунды
+    }
 }
 
 function updateTimerDisplay() {
