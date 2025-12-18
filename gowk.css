@@ -161,20 +161,20 @@ body {
     width: 250px;
     height: 250px;
     position: relative;
-    margin-bottom: 30px;
-    border-radius: 50%;
-    /* ⭐ ФИКС 1: Glassmorphism-дизайн для идеальной интеграции */
-    background: radial-gradient(circle, rgba(138, 92, 255, 0.1) 0%, transparent 70%);
-    border: 1px solid var(--glass-2); /* Светлая обводка */
-    backdrop-filter: blur(5px); /* Эффект размытия */
-    padding: 10px;
+    margin: 20px auto 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%; /* Гарантирует круглую форму */
     
-    /* ⭐ ГЛАВНЫЙ ФИКС: Мягкое круглое свечение через box-shadow */
-    box-shadow: 0 0 25px rgba(138, 92, 255, 0.3), 
-                inset 0 0 15px rgba(138, 92, 255, 0.1);
+    /* ⭐ ГЛАВНЫЙ ФИКС: Свечение теперь здесь */
+    /* Первое значение — внешнее мягкое свечение, второе — внутреннее */
+    box-shadow: 0 0 30px rgba(138, 92, 255, 0.25), 
+                inset 0 0 20px rgba(138, 92, 255, 0.1);
+    
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(8px);
+    transition: all 0.4s ease;
 }
 
 .timer-circle {
@@ -183,9 +183,9 @@ body {
 }
 
 .timer-background {
-    fill: transparent; 
-    stroke: var(--bg1); /* Используем самый темный фон для "заполнения" */
-    stroke-width: 8; 
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.05);
+    stroke-width: 8;
 }
 
 .timer-progress {
@@ -335,16 +335,23 @@ body {
 .end-modal p { text-align: center; color: var(--color-text-secondary); margin-bottom: 20px; }
 .end-modal .row { margin-top: 10px; }
 
-/* --- Анимация пульсации для кнопки --- */
-@keyframes pulse-glow {
+/* Анимация пульсации только когда таймер НЕ запущен */
+.timer-container:not(.is-running) {
+    animation: pulse-glow-v2 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse-glow-v2 {
     0% { 
-        box-shadow: 0 0 10px rgba(138, 92, 255, 0.4), inset 0 0 10px rgba(138, 92, 255, 0.1); 
+        box-shadow: 0 0 20px rgba(138, 92, 255, 0.3), inset 0 0 15px rgba(138, 92, 255, 0.1);
+        transform: scale(1);
     }
-    70% { 
-        box-shadow: 0 0 35px rgba(138, 92, 255, 0), inset 0 0 20px rgba(138, 92, 255, 0.2); 
+    50% { 
+        box-shadow: 0 0 45px rgba(138, 92, 255, 0.5), inset 0 0 25px rgba(138, 92, 255, 0.2);
+        transform: scale(1.02); /* Легкое увеличение для эффекта "дыхания" */
     }
     100% { 
-        box-shadow: 0 0 10px rgba(138, 92, 255, 0.4), inset 0 0 10px rgba(138, 92, 255, 0.1); 
+        box-shadow: 0 0 20px rgba(138, 92, 255, 0.3), inset 0 0 15px rgba(138, 92, 255, 0.1);
+        transform: scale(1);
     }
 }
 
@@ -355,7 +362,14 @@ body {
 
 /* Эффект свечения для прогресс-бара */
 .timer-progress {
-    filter: drop-shadow(0 0 5px var(--accent));
+    fill: none;
+    stroke: var(--accent); 
+    stroke-width: 8;
+    stroke-linecap: round;
+    transform: rotate(-90deg); 
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.1s linear;
+    /* drop-shadow УДАЛЕН */
 }
 
 /* Дополнительный стиль для активного состояния (через JS) */
