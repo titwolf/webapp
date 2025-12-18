@@ -283,6 +283,7 @@ function tick() {
     if (remainingSeconds <= 0) {
         clearInterval(timerInterval);
         timerInterval = null;
+        playTimerSound();
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
         showCompletion('завершено'); 
         return;
@@ -588,6 +589,31 @@ function updateTimerVisualState() {
         container.classList.add('is-running');
     } else {
         container.classList.remove('is-running');
+    }
+}
+
+
+function playTimerSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine'; // Мягкий звук
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Нота Ля
+        
+        // Плавное нарастание и затухание, чтобы не было щелчка
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+        console.log("Автовоспроизведение звука заблокировано браузером");
     }
 }
 
