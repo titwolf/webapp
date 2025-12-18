@@ -171,6 +171,7 @@ function restoreProgress(progress) {
     if (timerState === 'paused') {
         skipExerciseBtn.classList.remove('hidden');
     }
+    updateTimerVisualState(); // Добавить сюда
 }
 
 
@@ -253,6 +254,7 @@ function startTimer() {
         updateTimerDisplay(); 
         timerInterval = setInterval(tick, 1000);
     }
+updateTimerVisualState(); // Добавить сюда
 }
 
 function pauseTimer() {
@@ -267,6 +269,7 @@ function pauseTimer() {
 
     // ⭐ Сохраняем состояние при паузе
     saveProgress();
+    updateTimerVisualState(); // Добавить сюда
 }
 
 function tick() {
@@ -344,6 +347,7 @@ function resetTimer() {
     
     timerProgressEl.style.strokeDashoffset = 0; 
     timerProgressEl.style.stroke = 'var(--color-text-primary)'; 
+updateTimerVisualState(); // Добавить сюда
 }
 
 
@@ -554,6 +558,18 @@ function repeatWorkout() {
 function handleExit() {
     // ⭐ Эта функция используется только в EndWorkoutModal, где прогресс уже очищен
     window.location.href = 'index.html';
+}
+
+// Функция управления визуальным состоянием контейнера таймера
+function updateTimerVisualState() {
+    const container = document.querySelector('.timer-container');
+    if (!container) return;
+    
+    if (timerState === 'running' || timerState === 'rest') {
+        container.classList.add('is-running');
+    } else {
+        container.classList.remove('is-running');
+    }
 }
 
 /* ====== Start Application ====== */
