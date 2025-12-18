@@ -259,7 +259,7 @@ function startTimer() {
     saveProgress();
     if (remainingSeconds > 0) {
         updateTimerDisplay(); 
-        timerInterval = setInterval(tick, 250); // Проверяем чаще для точности
+        timerInterval = setInterval(tick, 1000);
     }
     updateTimerVisualState();
 }
@@ -280,15 +280,26 @@ function pauseTimer() {
 }
 
 function tick() {
-    const now = Date.now();
-    const diff = Math.ceil((endTime - now) / 1000);
+    if (remainingSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+        showCompletion('завершено'); 
+        return;
+    }
 
-    if (diff <= 0) {
-        finishStep();
-    } else {
-        remainingSeconds = diff;
-        updateTimerDisplay();
-        if (remainingSeconds % 2 === 0) saveProgress(); // Сохраняем раз в 2 секунды
+    remainingSeconds--;
+    updateTimerDisplay();
+    
+    // Сохраняем прогресс не каждую секунду (для производительности), а раз в 2 секунды
+    if (remainingSeconds % 2 === 0) saveProgress(); 
+
+    // Дополнительная проверка: если после уменьшения стал 0 — сразу завершаем
+    if (remainingSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        updateTimerDisplay(); // Показать 00:00
+        showCompletion('завершено');
     }
 }
 
@@ -359,6 +370,10 @@ updateTimerVisualState(); // Добавить сюда
 
 function showCompletion(status, move = true) {
     
+    clearInterval(timerInterval);
+    timerInterval = null;
+    remainingSeconds = 0; // Принудительно в 0
+    updateTimerDisplay(); // Рисуем 00:00 и полный круг
     const ex = activeWorkout.exercises[currentExIndex];
     ex.status = status; // Сохраняем статус в объекте
     updateExerciseCardStatus(ex.id, status);
